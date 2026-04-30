@@ -7,7 +7,26 @@ import { detectPackageManager, detectInstalledAdapter, detectInstalledFramework,
 import { installPackages } from '../utils/installer';
 import type { AdapterType, FrameworkType } from '../../types';
 
-const TEMPLATES_DIR = join(__dirname, '../templates');
+function getTemplatesDir(): string {
+  const candidates = [
+    join(__dirname, '../templates'),
+    join(__dirname, 'templates'),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (require('fs').existsSync(candidate)) {
+        return candidate;
+      }
+    } catch {
+      // ignore and try the next candidate
+    }
+  }
+
+  return candidates[0];
+}
+
+const TEMPLATES_DIR = getTemplatesDir();
 
 export async function runInit(): Promise<void> {
   logger.blank();

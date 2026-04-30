@@ -16090,13 +16090,16 @@ var require_ensure = __commonJS({
   }
 });
 
-// ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.0/node_modules/jsonfile/utils.js
+// ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.1/node_modules/jsonfile/utils.js
 var require_utils3 = __commonJS({
-  "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.0/node_modules/jsonfile/utils.js"(exports2, module2) {
+  "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.1/node_modules/jsonfile/utils.js"(exports2, module2) {
     "use strict";
     function stringify(obj, { EOL = "\n", finalEOL = true, replacer = null, spaces } = {}) {
       const EOF = finalEOL ? EOL : "";
       const str = JSON.stringify(obj, replacer, spaces);
+      if (str === void 0) {
+        throw new TypeError(`Converting ${typeof obj} value to JSON is not supported`);
+      }
       return str.replace(/\n/g, EOL) + EOF;
     }
     function stripBom(content) {
@@ -16107,9 +16110,9 @@ var require_utils3 = __commonJS({
   }
 });
 
-// ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.0/node_modules/jsonfile/index.js
+// ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.1/node_modules/jsonfile/index.js
 var require_jsonfile = __commonJS({
-  "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.0/node_modules/jsonfile/index.js"(exports2, module2) {
+  "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.1/node_modules/jsonfile/index.js"(exports2, module2) {
     "use strict";
     var _fs;
     try {
@@ -27021,7 +27024,22 @@ async function installPackages(packages, packageManager, dev = false) {
 }
 
 // src/cli/commands/init.ts
-var TEMPLATES_DIR = (0, import_path3.join)(__dirname, "../templates");
+function getTemplatesDir() {
+  const candidates = [
+    (0, import_path3.join)(__dirname, "../templates"),
+    (0, import_path3.join)(__dirname, "templates")
+  ];
+  for (const candidate of candidates) {
+    try {
+      if (require("fs").existsSync(candidate)) {
+        return candidate;
+      }
+    } catch {
+    }
+  }
+  return candidates[0];
+}
+var TEMPLATES_DIR = getTemplatesDir();
 async function runInit() {
   logger.blank();
   logger.title("Welcome to permifyjs \u{1F510}");

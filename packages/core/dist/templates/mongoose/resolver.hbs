@@ -1,0 +1,4 @@
+import type { PermissionResolver } from '@permifyjs/core';
+import { createMongooseResolver } from '@permifyjs/mongoose';
+
+export const resolver: PermissionResolver = createMongooseResolver();

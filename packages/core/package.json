@@ -1,6 +1,6 @@
 {
   "name": "@permifyjs/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Framework-agnostic RBAC engine for Node.js",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -28,9 +28,9 @@
     }
   },
   "scripts": {
-    "build": "tsup && chmod +x dist/bin.js",
+    "build": "pnpm exec tsup && node -e \"require('fs-extra').copySync('src/cli/templates','dist/templates')\" && chmod +x dist/bin.js",
     "test": "vitest",
-    "dev": "tsup --watch"
+    "dev": "pnpm exec tsup --watch"
   },
   "keywords": [
     "rbac",
