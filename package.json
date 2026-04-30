@@ -19,7 +19,8 @@
     "typescript"
   ],
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @permifyjs/core build && pnpm --filter @permifyjs/express build && pnpm --filter @permifyjs/nestjs build && pnpm --filter @permifyjs/prisma build && pnpm --filter @permifyjs/mongoose build",
+    "release:check": "pnpm build && pnpm -r test -- --run",
     "test": "pnpm -r test",
     "lint": "eslint packages/**/src/**/*.ts",
     "clean": "pnpm -r clean",

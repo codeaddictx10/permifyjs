@@ -9213,7 +9213,7 @@ var require_runtime = __commonJS({
           return ret2;
         },
         programs: [],
-        program: function program3(i2, data, declaredBlockParams, blockParams, depths) {
+        program: function program2(i2, data, declaredBlockParams, blockParams, depths) {
           var programWrapper = this.programs[i2], fn = this.fn(i2);
           if (data || depths || blockParams || declaredBlockParams) {
             programWrapper = wrapProgram(this, i2, fn, data, declaredBlockParams, blockParams, depths);
@@ -9589,9 +9589,9 @@ var require_parser = __commonJS({
               this.$ = { strip: yy.stripFlags($$[$0 - 1], $$[$0 - 1]), program: $$[$0] };
               break;
             case 19:
-              var inverse2 = yy.prepareBlock($$[$0 - 2], $$[$0 - 1], $$[$0], $$[$0], false, this._$), program3 = yy.prepareProgram([inverse2], $$[$0 - 1].loc);
-              program3.chained = true;
-              this.$ = { strip: $$[$0 - 2].strip, program: program3, chain: true };
+              var inverse2 = yy.prepareBlock($$[$0 - 2], $$[$0 - 1], $$[$0], $$[$0], false, this._$), program2 = yy.prepareProgram([inverse2], $$[$0 - 1].loc);
+              program2.chained = true;
+              this.$ = { strip: $$[$0 - 2].strip, program: program2, chain: true };
               break;
             case 20:
               this.$ = $$[$0];
@@ -10283,8 +10283,8 @@ var require_visitor = __commonJS({
           return object;
         }
       },
-      Program: function Program(program3) {
-        this.acceptArray(program3.body);
+      Program: function Program(program2) {
+        this.acceptArray(program2.body);
       },
       MustacheStatement: visitSubExpression,
       Decorator: visitSubExpression,
@@ -10354,11 +10354,11 @@ var require_whitespace_control = __commonJS({
       this.options = options;
     }
     WhitespaceControl.prototype = new _visitor2["default"]();
-    WhitespaceControl.prototype.Program = function(program3) {
+    WhitespaceControl.prototype.Program = function(program2) {
       var doStandalone = !this.options.ignoreStandalone;
       var isRoot = !this.isRootSeen;
       this.isRootSeen = true;
-      var body = program3.body;
+      var body = program2.body;
       for (var i2 = 0, l = body.length; i2 < l; i2++) {
         var current = body[i2], strip = this.accept(current);
         if (!strip) {
@@ -10388,12 +10388,12 @@ var require_whitespace_control = __commonJS({
           omitLeft((current.inverse || current.program).body);
         }
       }
-      return program3;
+      return program2;
     };
     WhitespaceControl.prototype.BlockStatement = WhitespaceControl.prototype.DecoratorBlock = WhitespaceControl.prototype.PartialBlockStatement = function(block) {
       this.accept(block.program);
       this.accept(block.inverse);
-      var program3 = block.program || block.inverse, inverse2 = block.program && block.inverse, firstInverse = inverse2, lastInverse = inverse2;
+      var program2 = block.program || block.inverse, inverse2 = block.program && block.inverse, firstInverse = inverse2, lastInverse = inverse2;
       if (inverse2 && inverse2.chained) {
         firstInverse = inverse2.body[0].program;
         while (lastInverse.chained) {
@@ -10405,16 +10405,16 @@ var require_whitespace_control = __commonJS({
         close: block.closeStrip.close,
         // Determine the standalone candiacy. Basically flag our content as being possibly standalone
         // so our parent can determine if we actually are standalone
-        openStandalone: isNextWhitespace(program3.body),
-        closeStandalone: isPrevWhitespace((firstInverse || program3).body)
+        openStandalone: isNextWhitespace(program2.body),
+        closeStandalone: isPrevWhitespace((firstInverse || program2).body)
       };
       if (block.openStrip.close) {
-        omitRight(program3.body, null, true);
+        omitRight(program2.body, null, true);
       }
       if (inverse2) {
         var inverseStrip = block.inverseStrip;
         if (inverseStrip.open) {
-          omitLeft(program3.body, null, true);
+          omitLeft(program2.body, null, true);
         }
         if (inverseStrip.close) {
           omitRight(firstInverse.body, null, true);
@@ -10422,12 +10422,12 @@ var require_whitespace_control = __commonJS({
         if (block.closeStrip.open) {
           omitLeft(lastInverse.body, null, true);
         }
-        if (!this.options.ignoreStandalone && isPrevWhitespace(program3.body) && isNextWhitespace(firstInverse.body)) {
-          omitLeft(program3.body);
+        if (!this.options.ignoreStandalone && isPrevWhitespace(program2.body) && isNextWhitespace(firstInverse.body)) {
+          omitLeft(program2.body);
           omitRight(firstInverse.body);
         }
       } else if (block.closeStrip.open) {
-        omitLeft(program3.body, null, true);
+        omitLeft(program2.body, null, true);
       }
       return strip;
     };
@@ -10585,7 +10585,7 @@ var require_helpers2 = __commonJS({
     function prepareRawBlock(openRawBlock, contents, close, locInfo) {
       validateClose(openRawBlock, close);
       locInfo = this.locInfo(locInfo);
-      var program3 = {
+      var program2 = {
         type: "Program",
         body: contents,
         strip: {},
@@ -10596,19 +10596,19 @@ var require_helpers2 = __commonJS({
         path: openRawBlock.path,
         params: openRawBlock.params,
         hash: openRawBlock.hash,
-        program: program3,
+        program: program2,
         openStrip: {},
         inverseStrip: {},
         closeStrip: {},
         loc: locInfo
       };
     }
-    function prepareBlock(openBlock, program3, inverseAndProgram, close, inverted, locInfo) {
+    function prepareBlock(openBlock, program2, inverseAndProgram, close, inverted, locInfo) {
       if (close && close.path) {
         validateClose(openBlock, close);
       }
       var decorator = /\*/.test(openBlock.open);
-      program3.blockParams = openBlock.blockParams;
+      program2.blockParams = openBlock.blockParams;
       var inverse2 = void 0, inverseStrip = void 0;
       if (inverseAndProgram) {
         if (decorator) {
@@ -10622,15 +10622,15 @@ var require_helpers2 = __commonJS({
       }
       if (inverted) {
         inverted = inverse2;
-        inverse2 = program3;
-        program3 = inverted;
+        inverse2 = program2;
+        program2 = inverted;
       }
       return {
         type: decorator ? "DecoratorBlock" : "BlockStatement",
         path: openBlock.path,
         params: openBlock.params,
         hash: openBlock.hash,
-        program: program3,
+        program: program2,
         inverse: inverse2,
         openStrip: openBlock.strip,
         inverseStrip,
@@ -10662,14 +10662,14 @@ var require_helpers2 = __commonJS({
         loc
       };
     }
-    function preparePartialBlock(open, program3, close, locInfo) {
+    function preparePartialBlock(open, program2, close, locInfo) {
       validateClose(open, close);
       return {
         type: "PartialBlockStatement",
         name: open.path,
         params: open.params,
         hash: open.hash,
-        program: program3,
+        program: program2,
         openStrip: open.strip,
         closeStrip: close && close.strip,
         loc: this.locInfo(locInfo)
@@ -10820,7 +10820,7 @@ var require_compiler = __commonJS({
         return true;
       },
       guid: 0,
-      compile: function compile2(program3, options) {
+      compile: function compile2(program2, options) {
         this.sourceNode = [];
         this.opcodes = [];
         this.children = [];
@@ -10838,10 +10838,10 @@ var require_compiler = __commonJS({
           log: true,
           lookup: true
         }, options.knownHelpers);
-        return this.accept(program3);
+        return this.accept(program2);
       },
-      compileProgram: function compileProgram(program3) {
-        var childCompiler = new this.compiler(), result = childCompiler.compile(program3, this.options), guid = this.guid++;
+      compileProgram: function compileProgram(program2) {
+        var childCompiler = new this.compiler(), result = childCompiler.compile(program2, this.options), guid = this.guid++;
         this.usePartial = this.usePartial || result.usePartial;
         this.children[guid] = result;
         this.useDepths = this.useDepths || result.useDepths;
@@ -10856,34 +10856,34 @@ var require_compiler = __commonJS({
         this.sourceNode.shift();
         return ret;
       },
-      Program: function Program(program3) {
-        this.options.blockParams.unshift(program3.blockParams);
-        var body = program3.body, bodyLength = body.length;
+      Program: function Program(program2) {
+        this.options.blockParams.unshift(program2.blockParams);
+        var body = program2.body, bodyLength = body.length;
         for (var i2 = 0; i2 < bodyLength; i2++) {
           this.accept(body[i2]);
         }
         this.options.blockParams.shift();
         this.isSimple = bodyLength === 1;
-        this.blockParams = program3.blockParams ? program3.blockParams.length : 0;
+        this.blockParams = program2.blockParams ? program2.blockParams.length : 0;
         return this;
       },
       BlockStatement: function BlockStatement(block) {
         transformLiteralToPath(block);
-        var program3 = block.program, inverse2 = block.inverse;
-        program3 = program3 && this.compileProgram(program3);
+        var program2 = block.program, inverse2 = block.inverse;
+        program2 = program2 && this.compileProgram(program2);
         inverse2 = inverse2 && this.compileProgram(inverse2);
         var type = this.classifySexpr(block);
         if (type === "helper") {
-          this.helperSexpr(block, program3, inverse2);
+          this.helperSexpr(block, program2, inverse2);
         } else if (type === "simple") {
           this.simpleSexpr(block);
-          this.opcode("pushProgram", program3);
+          this.opcode("pushProgram", program2);
           this.opcode("pushProgram", inverse2);
           this.opcode("emptyHash");
           this.opcode("blockValue", block.path.original);
         } else {
-          this.ambiguousSexpr(block, program3, inverse2);
-          this.opcode("pushProgram", program3);
+          this.ambiguousSexpr(block, program2, inverse2);
+          this.opcode("pushProgram", program2);
           this.opcode("pushProgram", inverse2);
           this.opcode("emptyHash");
           this.opcode("ambiguousBlockValue");
@@ -10891,16 +10891,16 @@ var require_compiler = __commonJS({
         this.opcode("append");
       },
       DecoratorBlock: function DecoratorBlock(decorator) {
-        var program3 = decorator.program && this.compileProgram(decorator.program);
-        var params = this.setupFullMustacheParams(decorator, program3, void 0), path6 = decorator.path;
+        var program2 = decorator.program && this.compileProgram(decorator.program);
+        var params = this.setupFullMustacheParams(decorator, program2, void 0), path6 = decorator.path;
         this.useDecorators = true;
         this.opcode("registerDecorator", params.length, path6.original);
       },
       PartialStatement: function PartialStatement(partial) {
         this.usePartial = true;
-        var program3 = partial.program;
-        if (program3) {
-          program3 = this.compileProgram(partial.program);
+        var program2 = partial.program;
+        if (program2) {
+          program2 = this.compileProgram(partial.program);
         }
         var params = partial.params;
         if (params.length > 1) {
@@ -10916,7 +10916,7 @@ var require_compiler = __commonJS({
         if (isDynamic) {
           this.accept(partial.name);
         }
-        this.setupFullMustacheParams(partial, program3, void 0, true);
+        this.setupFullMustacheParams(partial, program2, void 0, true);
         var indent = partial.indent || "";
         if (this.options.preventIndent && indent) {
           this.opcode("appendContent", indent);
@@ -10957,10 +10957,10 @@ var require_compiler = __commonJS({
           this.ambiguousSexpr(sexpr);
         }
       },
-      ambiguousSexpr: function ambiguousSexpr(sexpr, program3, inverse2) {
-        var path6 = sexpr.path, name = path6.parts[0], isBlock = program3 != null || inverse2 != null;
+      ambiguousSexpr: function ambiguousSexpr(sexpr, program2, inverse2) {
+        var path6 = sexpr.path, name = path6.parts[0], isBlock = program2 != null || inverse2 != null;
         this.opcode("getContext", path6.depth);
-        this.opcode("pushProgram", program3);
+        this.opcode("pushProgram", program2);
         this.opcode("pushProgram", inverse2);
         path6.strict = true;
         this.accept(path6);
@@ -10972,8 +10972,8 @@ var require_compiler = __commonJS({
         this.accept(path6);
         this.opcode("resolvePossibleLambda");
       },
-      helperSexpr: function helperSexpr(sexpr, program3, inverse2) {
-        var params = this.setupFullMustacheParams(sexpr, program3, inverse2), path6 = sexpr.path, name = path6.parts[0];
+      helperSexpr: function helperSexpr(sexpr, program2, inverse2) {
+        var params = this.setupFullMustacheParams(sexpr, program2, inverse2), path6 = sexpr.path, name = path6.parts[0];
         if (this.options.knownHelpers[name]) {
           this.opcode("invokeKnownHelper", params.length, name);
         } else if (this.options.knownHelpersOnly) {
@@ -11100,10 +11100,10 @@ var require_compiler = __commonJS({
           this.accept(val);
         }
       },
-      setupFullMustacheParams: function setupFullMustacheParams(sexpr, program3, inverse2, omitEmpty) {
+      setupFullMustacheParams: function setupFullMustacheParams(sexpr, program2, inverse2, omitEmpty) {
         var params = sexpr.params;
         this.pushParams(params);
-        this.opcode("pushProgram", program3);
+        this.opcode("pushProgram", program2);
         this.opcode("pushProgram", inverse2);
         if (sexpr.hash) {
           this.accept(sexpr.hash);
@@ -11423,7 +11423,7 @@ var require_util3 = __commonJS({
     exports2.isAbsolute = function(aPath) {
       return aPath.charAt(0) === "/" || urlRegexp.test(aPath);
     };
-    function relative(aRoot, aPath) {
+    function relative2(aRoot, aPath) {
       if (aRoot === "") {
         aRoot = ".";
       }
@@ -11442,7 +11442,7 @@ var require_util3 = __commonJS({
       }
       return Array(level + 1).join("../") + aPath.substr(aRoot.length + 1);
     }
-    exports2.relative = relative;
+    exports2.relative = relative2;
     var supportsNullProto = (function() {
       var obj = /* @__PURE__ */ Object.create(null);
       return !("__proto__" in obj);
@@ -13933,9 +13933,9 @@ var require_javascript_compiler = __commonJS({
           options.hashTypes = this.popStack();
           options.hashContexts = this.popStack();
         }
-        var inverse2 = this.popStack(), program3 = this.popStack();
-        if (program3 || inverse2) {
-          options.fn = program3 || "container.noop";
+        var inverse2 = this.popStack(), program2 = this.popStack();
+        if (program2 || inverse2) {
+          options.fn = program2 || "container.noop";
           options.inverse = inverse2 || "container.noop";
         }
         var i2 = paramSize;
@@ -14087,12 +14087,12 @@ var require_printer = __commonJS({
       out += string + "\n";
       return out;
     };
-    PrintVisitor.prototype.Program = function(program3) {
-      var out = "", body = program3.body, i2 = void 0, l = void 0;
-      if (program3.blockParams) {
+    PrintVisitor.prototype.Program = function(program2) {
+      var out = "", body = program2.body, i2 = void 0, l = void 0;
+      if (program2.blockParams) {
         var blockParams = "BLOCK PARAMS: [";
-        for (i2 = 0, l = program3.blockParams.length; i2 < l; i2++) {
-          blockParams += " " + program3.blockParams[i2];
+        for (i2 = 0, l = program2.blockParams.length; i2 < l; i2++) {
+          blockParams += " " + program2.blockParams[i2];
         }
         blockParams += " ]";
         out += this.pad(blockParams);
@@ -16016,9 +16016,9 @@ var require_symlink = __commonJS({
         const dstStat = await fs2.stat(dstpath);
         if (areIdentical(srcStat, dstStat)) return;
       }
-      const relative = await symlinkPaths(srcpath, dstpath);
-      srcpath = relative.toDst;
-      const toType = await symlinkType(relative.toCwd, type);
+      const relative2 = await symlinkPaths(srcpath, dstpath);
+      srcpath = relative2.toDst;
+      const toType = await symlinkType(relative2.toCwd, type);
       const dir = path6.dirname(dstpath);
       if (!await pathExists(dir)) {
         await mkdirs(dir);
@@ -16047,9 +16047,9 @@ var require_symlink = __commonJS({
         const dstStat = fs2.statSync(dstpath);
         if (areIdentical(srcStat, dstStat)) return;
       }
-      const relative = symlinkPathsSync(srcpath, dstpath);
-      srcpath = relative.toDst;
-      type = symlinkTypeSync(relative.toCwd, type);
+      const relative2 = symlinkPathsSync(srcpath, dstpath);
+      srcpath = relative2.toDst;
+      type = symlinkTypeSync(relative2.toCwd, type);
       const dir = path6.dirname(dstpath);
       const exists = fs2.existsSync(dir);
       if (exists) return fs2.symlinkSync(srcpath, dstpath, type);
@@ -16141,7 +16141,7 @@ var require_jsonfile = __commonJS({
       return obj;
     }
     var readFile2 = universalify.fromPromise(_readFile);
-    function readFileSync3(file, options = {}) {
+    function readFileSync4(file, options = {}) {
       if (typeof options === "string") {
         options = { encoding: options };
       }
@@ -16173,7 +16173,7 @@ var require_jsonfile = __commonJS({
     }
     module2.exports = {
       readFile: readFile2,
-      readFileSync: readFileSync3,
+      readFileSync: readFileSync4,
       writeFile: writeFile2,
       writeFileSync: writeFileSync2
     };
@@ -20389,22 +20389,122 @@ async function writeFile(filePath, content) {
 var import_fs = require("fs");
 var import_path2 = require("path");
 var import_process = __toESM(require("process"));
-function detectPackageManager() {
-  if ((0, import_fs.existsSync)((0, import_path2.join)(import_process.default.cwd(), "pnpm-lock.yaml"))) return "pnpm";
-  if ((0, import_fs.existsSync)((0, import_path2.join)(import_process.default.cwd(), "yarn.lock"))) return "yarn";
+var COMMON_PRISMA_PATHS = [
+  "prisma/schema.prisma",
+  "schema.prisma",
+  "db/schema.prisma",
+  "database/schema.prisma",
+  "src/prisma/schema.prisma",
+  "src/schema.prisma"
+];
+var SUPPORTED_SOURCE_EXTENSIONS = [".ts", ".mts", ".cts", ".js", ".mjs", ".cjs"];
+var SKIPPED_SEARCH_DIRS = /* @__PURE__ */ new Set([
+  ".git",
+  ".next",
+  ".turbo",
+  "build",
+  "coverage",
+  "dist",
+  "node_modules"
+]);
+function readPackageJson(cwd) {
+  const packageJsonPath = (0, import_path2.join)(cwd, "package.json");
+  if (!(0, import_fs.existsSync)(packageJsonPath)) return null;
+  try {
+    return JSON.parse((0, import_fs.readFileSync)(packageJsonPath, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+function packageHasDependency(cwd, pkg) {
+  const packageJson = readPackageJson(cwd);
+  if (!packageJson) return false;
+  return Boolean(
+    packageJson.dependencies?.[pkg] || packageJson.devDependencies?.[pkg] || packageJson.peerDependencies?.[pkg] || packageJson.optionalDependencies?.[pkg]
+  );
+}
+function getPackageJsonPrismaSchemaPath(cwd) {
+  const packageJson = readPackageJson(cwd);
+  const schemaPath = packageJson?.prisma?.schema;
+  if (typeof schemaPath !== "string" || schemaPath.trim() === "") {
+    return null;
+  }
+  const absolutePath = (0, import_path2.join)(cwd, schemaPath);
+  return (0, import_fs.existsSync)(absolutePath) ? absolutePath : null;
+}
+function findNestedPrismaSchema(cwd, maxDepth = 4) {
+  const visit = (dir, depth) => {
+    if (depth > maxDepth) return null;
+    for (const entry of (0, import_fs.readdirSync)(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        if (SKIPPED_SEARCH_DIRS.has(entry.name)) continue;
+        const nested = visit((0, import_path2.join)(dir, entry.name), depth + 1);
+        if (nested) return nested;
+      }
+      if (entry.isFile() && entry.name === "schema.prisma") {
+        return (0, import_path2.join)(dir, entry.name);
+      }
+    }
+    return null;
+  };
+  return visit(cwd, 0);
+}
+function toImportSpecifier(fromDir, filePath) {
+  const extension = (0, import_path2.extname)(filePath);
+  const withoutExtension = extension ? filePath.slice(0, -extension.length) : filePath;
+  const withoutIndex = withoutExtension.endsWith("/index") ? (0, import_path2.dirname)(withoutExtension) : withoutExtension;
+  let specifier = (0, import_path2.relative)(fromDir, withoutIndex).replace(/\\/g, "/");
+  if (!specifier.startsWith(".")) {
+    specifier = `./${specifier}`;
+  }
+  return specifier;
+}
+function detectPrismaClientImportPath(srcDir = detectSrcDir(), cwd = import_process.default.cwd()) {
+  const sourceRoot = srcDir === "." ? "" : `${srcDir}/`;
+  const candidateBases = [
+    `${sourceRoot}lib/prisma`,
+    `${sourceRoot}db/prisma`,
+    `${sourceRoot}prisma`,
+    "lib/prisma",
+    "db/prisma",
+    "prisma"
+  ];
+  const permifyDir = (0, import_path2.join)(cwd, srcDir, "permifyjs");
+  for (const base of candidateBases) {
+    for (const extension of SUPPORTED_SOURCE_EXTENSIONS) {
+      const candidate = (0, import_path2.join)(cwd, `${base}${extension}`);
+      if ((0, import_fs.existsSync)(candidate)) {
+        return toImportSpecifier(permifyDir, candidate);
+      }
+    }
+    for (const extension of SUPPORTED_SOURCE_EXTENSIONS) {
+      const candidate = (0, import_path2.join)(cwd, base, `index${extension}`);
+      if ((0, import_fs.existsSync)(candidate)) {
+        return toImportSpecifier(permifyDir, candidate);
+      }
+    }
+  }
+  return null;
+}
+function detectPackageManager(cwd = import_process.default.cwd()) {
+  if ((0, import_fs.existsSync)((0, import_path2.join)(cwd, "pnpm-lock.yaml"))) return "pnpm";
+  if ((0, import_fs.existsSync)((0, import_path2.join)(cwd, "yarn.lock"))) return "yarn";
   return "npm";
 }
-function detectPrisma() {
-  return (0, import_fs.existsSync)((0, import_path2.join)(import_process.default.cwd(), "prisma/schema.prisma")) || (0, import_fs.existsSync)((0, import_path2.join)(import_process.default.cwd(), "schema.prisma"));
+function detectPrisma(cwd = import_process.default.cwd()) {
+  return detectPrismaSchemaPath(cwd) !== null || packageHasDependency(cwd, "prisma");
 }
-function detectPrismaSchemaPath() {
-  const paths = [
-    (0, import_path2.join)(import_process.default.cwd(), "prisma/schema.prisma"),
-    (0, import_path2.join)(import_process.default.cwd(), "schema.prisma")
-  ];
-  return paths.find(import_fs.existsSync) ?? null;
+function detectPrismaSchemaPath(cwd = import_process.default.cwd()) {
+  const packageJsonSchemaPath = getPackageJsonPrismaSchemaPath(cwd);
+  if (packageJsonSchemaPath) return packageJsonSchemaPath;
+  for (const relativePath of COMMON_PRISMA_PATHS) {
+    const absolutePath = (0, import_path2.join)(cwd, relativePath);
+    if ((0, import_fs.existsSync)(absolutePath)) return absolutePath;
+  }
+  return findNestedPrismaSchema(cwd);
 }
-function detectMongoose() {
+function detectMongoose(cwd = import_process.default.cwd()) {
+  if (packageHasDependency(cwd, "mongoose")) return true;
   try {
     require.resolve("mongoose");
     return true;
@@ -20412,7 +20512,8 @@ function detectMongoose() {
     return false;
   }
 }
-function detectTypeORM() {
+function detectTypeORM(cwd = import_process.default.cwd()) {
+  if (packageHasDependency(cwd, "typeorm")) return true;
   try {
     require.resolve("typeorm");
     return true;
@@ -20420,19 +20521,22 @@ function detectTypeORM() {
     return false;
   }
 }
-function detectInstalledAdapter() {
-  if (detectPrisma()) return "prisma";
-  if (detectMongoose()) return "mongoose";
-  if (detectTypeORM()) return "typeorm";
+function detectInstalledAdapter(cwd = import_process.default.cwd()) {
+  if (detectPrisma(cwd)) return "prisma";
+  if (detectMongoose(cwd)) return "mongoose";
+  if (detectTypeORM(cwd)) return "typeorm";
   return null;
 }
-function detectInstalledFramework() {
+function detectInstalledFramework(cwd = import_process.default.cwd()) {
   const checks = [
     ["nestjs", "@nestjs/core"],
     ["fastify", "fastify"],
     ["express", "express"]
   ];
   for (const [framework, pkg] of checks) {
+    if (packageHasDependency(cwd, pkg)) {
+      return framework;
+    }
     try {
       require.resolve(pkg);
       return framework;
@@ -20442,8 +20546,8 @@ function detectInstalledFramework() {
   }
   return null;
 }
-function detectSrcDir() {
-  return (0, import_fs.existsSync)((0, import_path2.join)(import_process.default.cwd(), "src")) ? "src" : ".";
+function detectSrcDir(cwd = import_process.default.cwd()) {
+  return (0, import_fs.existsSync)((0, import_path2.join)(cwd, "src")) ? "src" : ".";
 }
 
 // ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/is-plain-obj@4.1.0/node_modules/is-plain-obj/index.js
@@ -26926,6 +27030,7 @@ async function runInit() {
   const detectedFramework = detectInstalledFramework();
   const packageManager = detectPackageManager();
   const srcDir = detectSrcDir();
+  const detectedPrismaClientImportPath = detectPrismaClientImportPath(srcDir);
   const answers = await (0, import_prompts.default)(
     [
       {
@@ -26964,6 +27069,18 @@ async function runInit() {
         initial: true
       },
       {
+        type: (_, values) => values.adapter === "prisma" ? "text" : null,
+        name: "prismaClientImportPath",
+        message: "Import path to your Prisma client instance (relative to generated permify files)",
+        initial: detectedPrismaClientImportPath ?? "../lib/prisma",
+        validate: (value) => {
+          if (!value || !value.trim()) {
+            return "Prisma client import path is required";
+          }
+          return true;
+        }
+      },
+      {
         type: "confirm",
         name: "confirm",
         message: (prev, values) => `Ready to set up permifyjs with ${values.adapter} + ${values.framework}. Continue?`,
@@ -26985,6 +27102,7 @@ async function runInit() {
   const framework = answers.framework;
   const models = answers.models.map((m) => m.trim()).filter(Boolean);
   const enableCache = answers.enableCache;
+  const prismaClientImportPath = answers.prismaClientImportPath?.trim();
   logger.blank();
   const spinner = ora("Installing packages...").start();
   const packagesToInstall = [
@@ -27020,7 +27138,7 @@ async function runInit() {
     await generateFile(
       (0, import_path3.join)(TEMPLATES_DIR, adapter, "resolver.hbs"),
       resolverPath,
-      { adapter, framework, models }
+      { adapter, framework, models, prismaClientImportPath }
     );
     logger.success(`Generated ${srcDir}/permifyjs/resolver.ts`);
   }
@@ -27031,7 +27149,7 @@ async function runInit() {
     await generateFile(
       (0, import_path3.join)(TEMPLATES_DIR, adapter, "writeResolver.hbs"),
       writeResolverPath,
-      { adapter, framework, models }
+      { adapter, framework, models, prismaClientImportPath }
     );
     logger.success(`Generated ${srcDir}/permifyjs/writeResolver.ts`);
   }
@@ -27071,18 +27189,52 @@ async function runInit() {
   logger.blank();
 }
 async function setupPrisma() {
-  const spinner = ora("Adding permifyjs models to schema.prisma...").start();
-  try {
-    const schemaPath = detectPrismaSchemaPath();
-    if (!schemaPath) {
-      spinner.warn("No schema.prisma found \u2014 skipping schema update");
-      logger.warn("Add the permifyjs models to your schema.prisma manually.");
-      logger.warn("Find them in node_modules/@permifyjs/prisma/src/schema.prisma");
-      return;
+  const spinner = ora("Looking for schema.prisma...").start();
+  spinner.stop();
+  let schemaPath = detectPrismaSchemaPath();
+  if (!schemaPath) {
+    logger.warn("Could not detect schema.prisma location.");
+    const answer = await (0, import_prompts.default)([
+      {
+        type: "confirm",
+        name: "locate",
+        message: "Would you like to specify the path manually?",
+        initial: true
+      },
+      {
+        type: (prev) => prev ? "text" : null,
+        name: "customPath",
+        message: "Enter path to schema.prisma",
+        initial: "prisma/schema.prisma",
+        validate: async (value) => {
+          const exists = await fileExists((0, import_path3.join)(process.cwd(), value));
+          if (!exists) return `File not found: ${value}`;
+          return true;
+        }
+      }
+    ]);
+    if (!answer.locate || !answer.customPath) {
+      const createAnswer = await (0, import_prompts.default)({
+        type: "confirm",
+        name: "create",
+        message: "Would you like permifyjs to create a schema.prisma for you?",
+        initial: true
+      });
+      if (createAnswer.create) {
+        schemaPath = await createPrismaSchema();
+      } else {
+        await copySchemaFragment();
+        return;
+      }
+    } else {
+      schemaPath = (0, import_path3.join)(process.cwd(), answer.customPath);
     }
+  }
+  const appendSpinner = ora("Adding permifyjs models to schema.prisma...").start();
+  try {
     const existingSchema = await readFile(schemaPath);
     if (existingSchema.includes("PermifyRole")) {
-      spinner.warn("permifyjs models already in schema.prisma \u2014 skipping");
+      appendSpinner.warn("permifyjs models already in schema.prisma \u2014 skipping");
       return;
     }
     const schemaFragment = await readFile(
@@ -27091,10 +27243,52 @@ async function setupPrisma() {
     await appendToFile(schemaPath, `
 
 ${schemaFragment}`);
-    spinner.succeed("Added permifyjs models to schema.prisma");
+    appendSpinner.succeed(`Added permifyjs models to ${schemaPath}`);
     logger.info("Run: npx prisma migrate dev --name add_permifyjs");
   } catch (err) {
-    spinner.fail("Failed to update schema.prisma");
+    appendSpinner.fail("Failed to update schema.prisma");
+    logger.error(String(err));
+  }
+}
+async function createPrismaSchema() {
+  const spinner = ora("Creating schema.prisma...").start();
+  const schemaPath = (0, import_path3.join)(process.cwd(), "prisma/schema.prisma");
+  const baseSchema = `generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+`;
+  const schemaFragment = await readFile(
+    (0, import_path3.join)(TEMPLATES_DIR, "prisma/schema.hbs")
+  );
+  await writeFile(schemaPath, `${baseSchema}
+${schemaFragment}`);
+  spinner.succeed("Created prisma/schema.prisma");
+  logger.info("Update the datasource provider if you are not using PostgreSQL");
+  logger.info("Run: npx prisma migrate dev --name add_permifyjs");
+  return schemaPath;
+}
+async function copySchemaFragment() {
+  const spinner = ora("Copying schema fragment...").start();
+  try {
+    const schemaFragment = await readFile(
+      (0, import_path3.join)(TEMPLATES_DIR, "prisma/schema.hbs")
+    );
+    const outputPath = (0, import_path3.join)(process.cwd(), "permifyjs.schema.prisma");
+    await writeFile(outputPath, schemaFragment);
+    spinner.succeed("Created permifyjs.schema.prisma");
+    logger.blank();
+    logger.warn("Action required:");
+    logger.step("1. Open permifyjs.schema.prisma");
+    logger.step("2. Copy the models into your schema.prisma");
+    logger.step("3. Run: npx prisma migrate dev --name add_permifyjs");
+    logger.step("4. Delete permifyjs.schema.prisma");
+  } catch (err) {
+    spinner.fail("Failed to copy schema fragment");
     logger.error(String(err));
   }
 }
@@ -27227,21 +27421,26 @@ async function runUserCommand(action, opts) {
   logger.blank();
 }
 
+// src/cli/program.ts
+function createProgram() {
+  const program2 = new Command();
+  program2.name("permifyjs").description("permifyjs \u2014 framework agnostic RBAC for Node.js").version("0.1.0");
+  program2.command("init").description("Set up permifyjs in your project").action(runInit);
+  program2.command("migrate").description("Run permifyjs migrations").action(() => runMigrate("migrate"));
+  program2.command("migrate:rollback").description("Rollback last migration").action(() => runMigrate("rollback"));
+  program2.command("migrate:fresh").description("Drop all tables and re-run migrations").action(() => runMigrate("fresh"));
+  program2.command("migrate:status").description("Show migration status").action(() => runMigrate("status"));
+  program2.command("role:create <name>").description("Create a new role").action((name) => runRoleCommand("create", { name }));
+  program2.command("role:list").description("List all roles").action(() => runRoleCommand("list", {}));
+  program2.command("role:assign").description("Assign a role to a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").requiredOption("--role <role>", "Role name").action((opts) => runRoleCommand("assign", opts));
+  program2.command("role:remove").description("Remove a role from a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").requiredOption("--role <role>", "Role name").action((opts) => runRoleCommand("remove", opts));
+  program2.command("permission:create <name>").description("Create a new permission").action((name) => runPermissionCommand("create", { name }));
+  program2.command("permission:list").description("List all permissions").action(() => runPermissionCommand("list", {}));
+  program2.command("permission:assign").description("Assign a permission to a role").requiredOption("--role <role>", "Role name").requiredOption("--permission <permission>", "Permission name").action((opts) => runPermissionCommand("assign", opts));
+  program2.command("user:roles").description("List roles for a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").action((opts) => runUserCommand("roles", opts));
+  program2.command("user:permissions").description("List permissions for a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").action((opts) => runUserCommand("permissions", opts));
+  return program2;
+}
+
 // src/cli/bin.ts
-var program2 = new Command();
-program2.name("permifyjs").description("permifyjs \u2014 framework agnostic RBAC for Node.js").version("0.1.0");
-program2.command("init").description("Set up permifyjs in your project").action(runInit);
-program2.command("migrate").description("Run permifyjs migrations").action(() => runMigrate("migrate"));
-program2.command("migrate:rollback").description("Rollback last migration").action(() => runMigrate("rollback"));
-program2.command("migrate:fresh").description("Drop all tables and re-run migrations").action(() => runMigrate("fresh"));
-program2.command("migrate:status").description("Show migration status").action(() => runMigrate("status"));
-program2.command("role:create <name>").description("Create a new role").action((name) => runRoleCommand("create", { name }));
-program2.command("role:list").description("List all roles").action(() => runRoleCommand("list", {}));
-program2.command("role:assign").description("Assign a role to a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").requiredOption("--role <role>", "Role name").action((opts) => runRoleCommand("assign", opts));
-program2.command("role:remove").description("Remove a role from a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").requiredOption("--role <role>", "Role name").action((opts) => runRoleCommand("remove", opts));
-program2.command("permission:create <name>").description("Create a new permission").action((name) => runPermissionCommand("create", { name }));
-program2.command("permission:list").description("List all permissions").action(() => runPermissionCommand("list", {}));
-program2.command("permission:assign").description("Assign a permission to a role").requiredOption("--role <role>", "Role name").requiredOption("--permission <permission>", "Permission name").action((opts) => runPermissionCommand("assign", opts));
-program2.command("user:roles").description("List roles for a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").action((opts) => runUserCommand("roles", opts));
-program2.command("user:permissions").description("List permissions for a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").action((opts) => runUserCommand("permissions", opts));
-program2.parse(process.argv);
+createProgram().parse(process.argv);

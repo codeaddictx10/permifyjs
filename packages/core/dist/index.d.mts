@@ -30,6 +30,7 @@ interface CacheOptions {
     ttl?: number;
     max?: number;
     prefix?: string;
+    store?: CacheStore<CacheValue>;
 }
 interface CacheEntry {
     roles: string[];
@@ -40,6 +41,15 @@ interface CacheEntry {
 interface RoleCacheEntry {
     permissions: string[];
     expiresAt: number;
+}
+type CacheValue = CacheEntry | RoleCacheEntry;
+interface CacheStore<T = CacheValue> {
+    get(key: string): T | null | undefined;
+    set(key: string, value: T): void;
+    delete(key: string): void;
+    clear(): void;
+    keys(): Iterable<string>;
+    size?(): number;
 }
 interface AuthOptions {
     resolver: PermissionResolver;
@@ -68,15 +78,29 @@ interface PermifyConfig {
     };
 }
 
+declare class MemoryCacheStore<T = CacheValue> implements CacheStore<T> {
+    private map;
+    get(key: string): T | null;
+    set(key: string, value: T): void;
+    delete(key: string): void;
+    clear(): void;
+    keys(): Iterable<string>;
+    size(): number;
+}
 declare class PermissionCache {
     private store;
-    private roleStore;
     private ttl;
     private max;
     private prefix;
     constructor(opts?: CacheOptions);
     buildKey(user: AuthUser, context?: AuthContext): string;
     buildRoleKey(role: string, context?: AuthContext): string;
+    private userPrefix;
+    private rolePrefix;
+    private filterKeys;
+    private userKeys;
+    private countKeys;
+    private evictOldest;
     get(user: AuthUser, context?: AuthContext): CacheEntry | null;
     set(user: AuthUser, context: AuthContext | undefined, data: Omit<CacheEntry, 'expiresAt'>): void;
     getRolePermissions(role: string, context?: AuthContext): string[] | null;
@@ -136,6 +160,27 @@ declare class AuthEngine {
 declare function createAuth(opts: AuthOptions): AuthEngine;
 declare function defineConfig(config: PermifyConfig): PermifyConfig;
 
+interface RoleSeedDefinition {
+    permissions?: string[];
+}
+type RoleSeedMap = Record<string, string[] | RoleSeedDefinition>;
+interface SeedRolesOptions {
+    context?: AuthContext;
+}
+interface BootstrapAccessOptions {
+    model: AuthModel;
+    roles?: string[];
+    permissions?: string[];
+    context?: AuthContext;
+    mode?: 'sync' | 'merge';
+}
+type RoleSeeder = Pick<AuthEngine, 'assignPermissionToRole' | 'syncRolePermissions'>;
+type AccessBootstrapper = Pick<AuthEngine, 'assignRole' | 'givePermissionTo' | 'syncRoles' | 'syncPermissions'>;
+declare function defineRoles<T extends RoleSeedMap>(roles: T): T;
+declare function seedRoles(auth: RoleSeeder, roles: RoleSeedMap, options?: SeedRolesOptions): Promise<void>;
+declare function syncRolesAndPermissions(auth: RoleSeeder, roles: RoleSeedMap, options?: SeedRolesOptions): Promise<void>;
+declare function bootstrapAccess(auth: AccessBootstrapper, options: BootstrapAccessOptions): Promise<void>;
+
 declare function hasAnyRole(auth: AuthEngine, user: AuthUser, roles: string[], context?: AuthContext): Promise<boolean>;
 declare function hasAllRoles(auth: AuthEngine, user: AuthUser, roles: string[], context?: AuthContext): Promise<boolean>;
 declare function hasAnyPermission(auth: AuthEngine, user: AuthUser, permissions: string[], context?: AuthContext): Promise<boolean>;
@@ -145,4 +190,4 @@ declare function hasAllDirectPermissions(auth: AuthEngine, user: AuthUser, permi
 declare function hasRoleOrPermission(auth: AuthEngine, user: AuthUser, role: string, permission: string, context?: AuthContext): Promise<boolean>;
 declare function hasAnyRoleOrPermission(auth: AuthEngine, user: AuthUser, roles: string[], permissions: string[], context?: AuthContext): Promise<boolean>;
 
-export { type AdapterType, type AuthContext, AuthEngine, type AuthModel, type AuthOptions, type AuthUser, type CacheEntry, type CacheOptions, type FrameworkType, type PermifyConfig, PermissionCache, type PermissionResolver, type PermissionWriteResolver, Role, type RoleCacheEntry, createAuth, defineConfig, hasAllDirectPermissions, hasAllPermissions, hasAllRoles, hasAnyDirectPermission, hasAnyPermission, hasAnyRole, hasAnyRoleOrPermission, hasRoleOrPermission };
+export { type AdapterType, type AuthContext, AuthEngine, type AuthModel, type AuthOptions, type AuthUser, type BootstrapAccessOptions, type CacheEntry, type CacheOptions, type CacheStore, type CacheValue, type FrameworkType, MemoryCacheStore, type PermifyConfig, PermissionCache, type PermissionResolver, type PermissionWriteResolver, Role, type RoleCacheEntry, type RoleSeedDefinition, type RoleSeedMap, type SeedRolesOptions, bootstrapAccess, createAuth, defineConfig, defineRoles, hasAllDirectPermissions, hasAllPermissions, hasAllRoles, hasAnyDirectPermission, hasAnyPermission, hasAnyRole, hasAnyRoleOrPermission, hasRoleOrPermission, seedRoles, syncRolesAndPermissions };

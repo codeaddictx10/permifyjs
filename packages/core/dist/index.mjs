@@ -1,8 +1,30 @@
 // src/cache.ts
+var MemoryCacheStore = class {
+  constructor() {
+    this.map = /* @__PURE__ */ new Map();
+  }
+  get(key) {
+    return this.map.get(key) ?? null;
+  }
+  set(key, value) {
+    this.map.set(key, value);
+  }
+  delete(key) {
+    this.map.delete(key);
+  }
+  clear() {
+    this.map.clear();
+  }
+  keys() {
+    return this.map.keys();
+  }
+  size() {
+    return this.map.size;
+  }
+};
 var PermissionCache = class {
   constructor(opts = {}) {
-    this.store = /* @__PURE__ */ new Map();
-    this.roleStore = /* @__PURE__ */ new Map();
+    this.store = opts.store ?? new MemoryCacheStore();
     this.ttl = (opts.ttl ?? 60) * 1e3;
     this.max = opts.max ?? 500;
     this.prefix = opts.prefix ?? "permifyjs";
@@ -16,6 +38,39 @@ var PermissionCache = class {
     const contextKey = context ? JSON.stringify(context) : "default";
     return `${this.prefix}:role:${role}:${contextKey}`;
   }
+  userPrefix(user) {
+    return `${this.prefix}:${user.id}:`;
+  }
+  rolePrefix(role) {
+    return `${this.prefix}:role:${role}:`;
+  }
+  *filterKeys(prefix) {
+    for (const key of this.store.keys()) {
+      if (key.startsWith(prefix)) {
+        yield key;
+      }
+    }
+  }
+  *userKeys() {
+    for (const key of this.filterKeys(`${this.prefix}:`)) {
+      if (!key.startsWith(`${this.prefix}:role:`)) {
+        yield key;
+      }
+    }
+  }
+  countKeys(keys) {
+    let count = 0;
+    for (const _key of keys) {
+      count += 1;
+    }
+    return count;
+  }
+  evictOldest(keys) {
+    const oldestKey = keys[Symbol.iterator]().next().value;
+    if (oldestKey) {
+      this.store.delete(oldestKey);
+    }
+  }
   // ─── User cache ───────────────────────────────────────────────────
   get(user, context) {
     const key = this.buildKey(user, context);
@@ -28,9 +83,8 @@ var PermissionCache = class {
     return entry;
   }
   set(user, context, data) {
-    if (this.store.size >= this.max) {
-      const oldestKey = this.store.keys().next().value;
-      if (oldestKey) this.store.delete(oldestKey);
+    if (this.size() >= this.max) {
+      this.evictOldest(this.userKeys());
     }
     const key = this.buildKey(user, context);
     this.store.set(key, {
@@ -41,40 +95,33 @@ var PermissionCache = class {
   // ─── Role cache ───────────────────────────────────────────────────
   getRolePermissions(role, context) {
     const key = this.buildRoleKey(role, context);
-    const entry = this.roleStore.get(key);
+    const entry = this.store.get(key);
     if (!entry) return null;
     if (Date.now() > entry.expiresAt) {
-      this.roleStore.delete(key);
+      this.store.delete(key);
       return null;
     }
     return entry.permissions;
   }
   setRolePermissions(role, context, permissions) {
-    if (this.roleStore.size >= this.max) {
-      const oldestKey = this.roleStore.keys().next().value;
-      if (oldestKey) this.roleStore.delete(oldestKey);
+    if (this.roleStoreSize() >= this.max) {
+      this.evictOldest(this.filterKeys(`${this.prefix}:role:`));
     }
     const key = this.buildRoleKey(role, context);
-    this.roleStore.set(key, {
+    this.store.set(key, {
       permissions,
       expiresAt: Date.now() + this.ttl
     });
   }
   invalidateRole(role) {
-    const prefix = `${this.prefix}:role:${role}:`;
-    for (const key of this.roleStore.keys()) {
-      if (key.startsWith(prefix)) {
-        this.roleStore.delete(key);
-      }
+    for (const key of this.filterKeys(this.rolePrefix(role))) {
+      this.store.delete(key);
     }
   }
   // ─── User invalidation ────────────────────────────────────────────
   invalidateUser(user) {
-    const prefix = `${this.prefix}:${user.id}:`;
-    for (const key of this.store.keys()) {
-      if (key.startsWith(prefix)) {
-        this.store.delete(key);
-      }
+    for (const key of this.filterKeys(this.userPrefix(user))) {
+      this.store.delete(key);
     }
   }
   invalidateUserContext(user, context) {
@@ -84,14 +131,13 @@ var PermissionCache = class {
   // ─── Clear all ────────────────────────────────────────────────────
   clear() {
     this.store.clear();
-    this.roleStore.clear();
   }
   // ─── Internals ────────────────────────────────────────────────────
   size() {
-    return this.store.size;
+    return this.countKeys(this.userKeys());
   }
   roleStoreSize() {
-    return this.roleStore.size;
+    return this.countKeys(this.filterKeys(`${this.prefix}:role:`));
   }
   has(user, context) {
     return this.get(user, context) !== null;
@@ -446,12 +492,61 @@ function createAuth(opts) {
 function defineConfig(config) {
   return config;
 }
+
+// src/seeding.ts
+function unique(values) {
+  return [...new Set(values ?? [])];
+}
+function normalizeRolePermissions(definition) {
+  if (Array.isArray(definition)) {
+    return unique(definition);
+  }
+  return unique(definition?.permissions);
+}
+function defineRoles(roles) {
+  return roles;
+}
+async function seedRoles(auth, roles, options = {}) {
+  const entries = Object.entries(roles);
+  for (const [role, definition] of entries) {
+    const permissions = normalizeRolePermissions(definition);
+    for (const permission of permissions) {
+      await auth.assignPermissionToRole(role, permission, options.context);
+    }
+  }
+}
+async function syncRolesAndPermissions(auth, roles, options = {}) {
+  const entries = Object.entries(roles);
+  for (const [role, definition] of entries) {
+    const permissions = normalizeRolePermissions(definition);
+    await auth.syncRolePermissions(role, permissions, options.context);
+  }
+}
+async function bootstrapAccess(auth, options) {
+  const roles = unique(options.roles);
+  const permissions = unique(options.permissions);
+  const mode = options.mode ?? "sync";
+  if (mode === "merge") {
+    for (const role of roles) {
+      await auth.assignRole(options.model, role, options.context);
+    }
+    for (const permission of permissions) {
+      await auth.givePermissionTo(options.model, permission, options.context);
+    }
+    return;
+  }
+  await auth.syncRoles(options.model, roles, options.context);
+  await auth.syncPermissions(options.model, permissions, options.context);
+}
 export {
   AuthEngine,
+  MemoryCacheStore,
   PermissionCache,
   Role,
+  bootstrapAccess,
   createAuth,
   defineConfig,
+  defineRoles,
   hasAllDirectPermissions,
   hasAllPermissions,
   hasAllRoles,
@@ -459,5 +554,7 @@ export {
   hasAnyPermission,
   hasAnyRole,
   hasAnyRoleOrPermission,
-  hasRoleOrPermission
+  hasRoleOrPermission,
+  seedRoles,
+  syncRolesAndPermissions
 };

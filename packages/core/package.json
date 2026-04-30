@@ -1,10 +1,18 @@
 {
   "name": "@permifyjs/core",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "description": "Framework-agnostic RBAC engine for Node.js",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "permifyjs": "./dist/bin.js"
   },
@@ -47,7 +55,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "packageManager": "pnpm@10.15.1",
+  "packageManager": "pnpm@10.33.0",
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^25.5.0",

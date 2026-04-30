@@ -1,10 +1,18 @@
 {
   "name": "@permifyjs/mongoose",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Mongoose adapter for PermifyJS",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,10 +26,11 @@
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
   },
   "keywords": [
-    "nestjs",
-    "guard",
+    "mongoose",
+    "mongodb",
     "rbac",
     "permissions",
+    "authorization",
     "permifyjs"
   ],
   "author": "Olufemi Samuel contact@permify.dev",
@@ -40,12 +49,15 @@
   },
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
-    "@permifyjs/core": "workspace:*",
+    "@permifyjs/core": "workspace:^0.1.0"
+  },
+  "peerDependencies": {
     "mongoose": "^8.19.2"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
     "mongodb-memory-server": "^11.0.1",
+    "mongoose": "^8.19.2",
     "tsup": "^8.5.1",
     "typescript": "^6.0.2",
     "vitest": "^4.1.2"

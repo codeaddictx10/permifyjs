@@ -1,13 +1,21 @@
 {
   "name": "@permifyjs/prisma",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Prisma adapter for PermifyJS",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
-    "testing",
-    "vitest",
-    "jest",
-    "mock",
+    "prisma",
+    "database",
     "rbac",
+    "permissions",
+    "authorization",
     "permifyjs"
   ],
   "author": "Olufemi Samuel contact@permify.dev",
@@ -40,11 +48,14 @@
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
   },
   "dependencies": {
-    "@permifyjs/core": "workspace:*",
+    "@permifyjs/core": "workspace:^0.1.0"
+  },
+  "peerDependencies": {
     "@prisma/client": "^7.6.0"
   },
   "devDependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.6.0",
     "@types/node": "^25.5.0",
     "prisma": "^7.6.0",
     "tsup": "^8.5.1",

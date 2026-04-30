@@ -2,6 +2,10 @@
 
 PermifyJS is a Spatie-inspired roles and permissions library for JavaScript and TypeScript.
 
+> Beta warning
+>
+> PermifyJS is still in beta and is not recommended for production use yet unless explicitly stated otherwise.
+
 It is built for Node.js teams that want:
 
 - a database-agnostic authorization core

@@ -1,5 +1,9 @@
 # Quick Start
 
+> Beta warning
+>
+> PermifyJS is still in beta and is not recommended for production use yet unless explicitly stated otherwise.
+
 ## 1. Pick Your Packages
 
 Install only the packages you need for your stack.
