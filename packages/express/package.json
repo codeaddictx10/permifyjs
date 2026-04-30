@@ -1,0 +1,52 @@
+{
+  "name": "@permifyjs/express",
+  "version": "0.0.1",
+  "description": "Express middleware adapter for PermifyJS",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
+  },
+  "keywords": [
+    "express",
+    "middleware",
+    "rbac",
+    "permissions",
+    "permifyjs"
+  ],
+  "author": "Olufemi Samuel contact@permify.dev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codeaddictx10/permifyjs.git",
+    "directory": "packages/express"
+  },
+  "homepage": "https://github.com/codeaddictx10/permifyjs#readme",
+  "bugs": {
+    "url": "https://github.com/codeaddictx10/permifyjs/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  },
+  "dependencies": {
+    "@permifyjs/core": "workspace:*",
+    "express": "^5.2.1"
+  }
+}

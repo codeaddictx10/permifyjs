@@ -1,0 +1,42 @@
+{
+  "name": "permifyjs-monorepo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Framework-agnostic RBAC library for Node.js",
+  "author": "Olufemi Samuel contact@permify.dev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codeaddictx10/permifyjs.git"
+  },
+  "keywords": [
+    "rbac",
+    "permissions",
+    "roles",
+    "authorization",
+    "access-control",
+    "nodejs",
+    "typescript"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "eslint packages/**/src/**/*.ts",
+    "clean": "pnpm -r clean",
+    "cli": "pnpm --filter @permifyjs/cli start"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "@vitest/ui": "^4.1.2",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

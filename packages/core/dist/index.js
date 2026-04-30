@@ -1,0 +1,502 @@
+"use strict";
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/index.ts
+var index_exports = {};
+__export(index_exports, {
+  AuthEngine: () => AuthEngine,
+  PermissionCache: () => PermissionCache,
+  Role: () => Role,
+  createAuth: () => createAuth,
+  defineConfig: () => defineConfig,
+  hasAllDirectPermissions: () => hasAllDirectPermissions,
+  hasAllPermissions: () => hasAllPermissions,
+  hasAllRoles: () => hasAllRoles,
+  hasAnyDirectPermission: () => hasAnyDirectPermission,
+  hasAnyPermission: () => hasAnyPermission,
+  hasAnyRole: () => hasAnyRole,
+  hasAnyRoleOrPermission: () => hasAnyRoleOrPermission,
+  hasRoleOrPermission: () => hasRoleOrPermission
+});
+module.exports = __toCommonJS(index_exports);
+
+// src/cache.ts
+var PermissionCache = class {
+  constructor(opts = {}) {
+    this.store = /* @__PURE__ */ new Map();
+    this.roleStore = /* @__PURE__ */ new Map();
+    this.ttl = (opts.ttl ?? 60) * 1e3;
+    this.max = opts.max ?? 500;
+    this.prefix = opts.prefix ?? "permifyjs";
+  }
+  // ─── Key generation ───────────────────────────────────────────────
+  buildKey(user, context) {
+    const contextKey = context ? JSON.stringify(context) : "default";
+    return `${this.prefix}:${user.id}:${contextKey}`;
+  }
+  buildRoleKey(role, context) {
+    const contextKey = context ? JSON.stringify(context) : "default";
+    return `${this.prefix}:role:${role}:${contextKey}`;
+  }
+  // ─── User cache ───────────────────────────────────────────────────
+  get(user, context) {
+    const key = this.buildKey(user, context);
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.store.delete(key);
+      return null;
+    }
+    return entry;
+  }
+  set(user, context, data) {
+    if (this.store.size >= this.max) {
+      const oldestKey = this.store.keys().next().value;
+      if (oldestKey) this.store.delete(oldestKey);
+    }
+    const key = this.buildKey(user, context);
+    this.store.set(key, {
+      ...data,
+      expiresAt: Date.now() + this.ttl
+    });
+  }
+  // ─── Role cache ───────────────────────────────────────────────────
+  getRolePermissions(role, context) {
+    const key = this.buildRoleKey(role, context);
+    const entry = this.roleStore.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.roleStore.delete(key);
+      return null;
+    }
+    return entry.permissions;
+  }
+  setRolePermissions(role, context, permissions) {
+    if (this.roleStore.size >= this.max) {
+      const oldestKey = this.roleStore.keys().next().value;
+      if (oldestKey) this.roleStore.delete(oldestKey);
+    }
+    const key = this.buildRoleKey(role, context);
+    this.roleStore.set(key, {
+      permissions,
+      expiresAt: Date.now() + this.ttl
+    });
+  }
+  invalidateRole(role) {
+    const prefix = `${this.prefix}:role:${role}:`;
+    for (const key of this.roleStore.keys()) {
+      if (key.startsWith(prefix)) {
+        this.roleStore.delete(key);
+      }
+    }
+  }
+  // ─── User invalidation ────────────────────────────────────────────
+  invalidateUser(user) {
+    const prefix = `${this.prefix}:${user.id}:`;
+    for (const key of this.store.keys()) {
+      if (key.startsWith(prefix)) {
+        this.store.delete(key);
+      }
+    }
+  }
+  invalidateUserContext(user, context) {
+    const key = this.buildKey(user, context);
+    this.store.delete(key);
+  }
+  // ─── Clear all ────────────────────────────────────────────────────
+  clear() {
+    this.store.clear();
+    this.roleStore.clear();
+  }
+  // ─── Internals ────────────────────────────────────────────────────
+  size() {
+    return this.store.size;
+  }
+  roleStoreSize() {
+    return this.roleStore.size;
+  }
+  has(user, context) {
+    return this.get(user, context) !== null;
+  }
+};
+
+// src/utils.ts
+async function hasAnyRole(auth, user, roles, context) {
+  const results = await Promise.all(
+    roles.map((role) => auth.hasRole(user, role, context))
+  );
+  return results.some(Boolean);
+}
+async function hasAllRoles(auth, user, roles, context) {
+  const results = await Promise.all(
+    roles.map((role) => auth.hasRole(user, role, context))
+  );
+  return results.every(Boolean);
+}
+async function hasAnyPermission(auth, user, permissions, context) {
+  const results = await Promise.all(
+    permissions.map((p) => auth.can(user, p, context))
+  );
+  return results.some(Boolean);
+}
+async function hasAllPermissions(auth, user, permissions, context) {
+  const results = await Promise.all(
+    permissions.map((p) => auth.can(user, p, context))
+  );
+  return results.every(Boolean);
+}
+async function hasAnyDirectPermission(auth, user, permissions, context) {
+  const results = await Promise.all(
+    permissions.map((p) => auth.canDirectly(user, p, context))
+  );
+  return results.some(Boolean);
+}
+async function hasAllDirectPermissions(auth, user, permissions, context) {
+  const results = await Promise.all(
+    permissions.map((p) => auth.canDirectly(user, p, context))
+  );
+  return results.every(Boolean);
+}
+async function hasRoleOrPermission(auth, user, role, permission, context) {
+  const [roleResult, permResult] = await Promise.all([
+    auth.hasRole(user, role, context),
+    auth.can(user, permission, context)
+  ]);
+  return roleResult || permResult;
+}
+async function hasAnyRoleOrPermission(auth, user, roles, permissions, context) {
+  const [roleResult, permResult] = await Promise.all([
+    hasAnyRole(auth, user, roles, context),
+    hasAnyPermission(auth, user, permissions, context)
+  ]);
+  return roleResult || permResult;
+}
+function matchesPermission(granted, requested) {
+  if (granted === requested) return true;
+  if (granted === "*") return true;
+  const escaped = granted.split(".").map((segment) => {
+    if (segment === "*") return "[^.]+";
+    return segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }).join("\\.");
+  const regex = new RegExp(`^${escaped}$`);
+  return regex.test(requested);
+}
+
+// src/role.ts
+var Role = class {
+  constructor(name, resolver, cache = null) {
+    this.name = name;
+    this.resolver = resolver;
+    this.cache = cache;
+  }
+  // ─── Getters ──────────────────────────────────────────────────────
+  getName() {
+    return this.name;
+  }
+  // ─── Permission resolution ────────────────────────────────────────
+  matchesPermission(granted, requested) {
+    if (granted === requested) return true;
+    if (granted === "*") return true;
+    const escaped = granted.split(".").map((segment) => {
+      if (segment === "*") return "[^.]+";
+      return segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }).join("\\.");
+    const regex = new RegExp(`^${escaped}$`);
+    return regex.test(requested);
+  }
+  // Fetch permissions for this role — cache aware
+  async getPermissions(context) {
+    if (this.cache) {
+      const cached = this.cache.getRolePermissions(this.name, context);
+      if (cached) return cached;
+    }
+    const permissions = await this.resolver.getRolePermissions(
+      this.name,
+      context
+    );
+    if (!Array.isArray(permissions)) {
+      throw new Error(
+        `[permifyjs] resolver.getRolePermissions must return Promise<string[]> for role "${this.name}"`
+      );
+    }
+    if (this.cache) {
+      this.cache.setRolePermissions(this.name, context, permissions);
+    }
+    return permissions;
+  }
+  // ─── Permission checks ────────────────────────────────────────────
+  async hasPermissionTo(permission, context) {
+    const permissions = await this.getPermissions(context);
+    return permissions.some((p) => matchesPermission(p, permission));
+  }
+  async hasAnyPermission(permissions, context) {
+    const results = await Promise.all(
+      permissions.map((p) => this.hasPermissionTo(p, context))
+    );
+    return results.some(Boolean);
+  }
+  async hasAllPermissions(permissions, context) {
+    const results = await Promise.all(
+      permissions.map((p) => this.hasPermissionTo(p, context))
+    );
+    return results.every(Boolean);
+  }
+};
+
+// src/engine.ts
+var AuthEngine = class {
+  constructor(opts) {
+    this.opts = opts;
+    this.cache = opts.cache ? new PermissionCache(opts.cache) : null;
+  }
+  // ─── Normalize model ──────────────────────────────────────────────
+  normalizeModel(model) {
+    return {
+      ...model,
+      modelType: model.modelType ?? "User"
+    };
+  }
+  // ─── Wildcard matching ────────────────────────────────────────────
+  matchesPermission(granted, requested) {
+    if (granted === requested) return true;
+    if (granted === "*") return true;
+    const escaped = granted.split(".").map((segment) => {
+      if (segment === "*") return "[^.]+";
+      return segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }).join("\\.");
+    const regex = new RegExp(`^${escaped}$`);
+    return regex.test(requested);
+  }
+  hasMatchingPermission(grantedPermissions, requested) {
+    return grantedPermissions.some(
+      (granted) => this.matchesPermission(granted, requested)
+    );
+  }
+  // ─── Cache-aware resolver calls ───────────────────────────────────
+  async resolveAll(model, context) {
+    const normalized = this.normalizeModel(model);
+    if (this.cache) {
+      const cached = this.cache.get(normalized, context);
+      if (cached) {
+        return {
+          roles: cached.roles,
+          directPermissions: cached.directPermissions,
+          permissionsThroughRoles: cached.permissionsThroughRoles
+        };
+      }
+    }
+    const [roles, directPermissions, permissionsThroughRoles] = await Promise.all([
+      this.opts.resolver.getRoles(normalized, context),
+      this.opts.resolver.getDirectPermissions(normalized, context),
+      this.opts.resolver.getPermissionsThroughRoles(normalized, context)
+    ]);
+    if (!Array.isArray(roles)) {
+      throw new Error(
+        "[permifyjs] resolver.getRoles must return Promise<string[]>"
+      );
+    }
+    if (!Array.isArray(directPermissions)) {
+      throw new Error(
+        "[permifyjs] resolver.getDirectPermissions must return Promise<string[]>"
+      );
+    }
+    if (!Array.isArray(permissionsThroughRoles)) {
+      throw new Error(
+        "[permifyjs] resolver.getPermissionsThroughRoles must return Promise<string[]>"
+      );
+    }
+    if (this.cache) {
+      this.cache.set(normalized, context, {
+        roles,
+        directPermissions,
+        permissionsThroughRoles
+      });
+    }
+    return { roles, directPermissions, permissionsThroughRoles };
+  }
+  // ─── Write resolver guard ─────────────────────────────────────────
+  requireWriteResolver(method) {
+    if (!this.opts.writeResolver) {
+      throw new Error(
+        `[permifyjs] writeResolver is required to use ${method}(). Pass a writeResolver to createAuth() to enable assignment methods.`
+      );
+    }
+  }
+  // ─── Read API ─────────────────────────────────────────────────────
+  async getAllPermissions(model, context) {
+    const { directPermissions, permissionsThroughRoles } = await this.resolveAll(model, context);
+    return [.../* @__PURE__ */ new Set([...directPermissions, ...permissionsThroughRoles])];
+  }
+  async can(model, permission, context) {
+    const normalized = this.normalizeModel(model);
+    const override = await this.opts.beforeCheck?.({
+      model: normalized,
+      permission,
+      context
+    });
+    if (override !== null && override !== void 0) return override;
+    const all = await this.getAllPermissions(normalized, context);
+    return this.hasMatchingPermission(all, permission);
+  }
+  async canDirectly(model, permission, context) {
+    const { directPermissions } = await this.resolveAll(model, context);
+    return this.hasMatchingPermission(directPermissions, permission);
+  }
+  async canThroughRole(model, permission, context) {
+    const { permissionsThroughRoles } = await this.resolveAll(model, context);
+    return this.hasMatchingPermission(permissionsThroughRoles, permission);
+  }
+  async hasRole(model, role, context) {
+    const normalized = this.normalizeModel(model);
+    const override = await this.opts.beforeCheck?.({
+      model: normalized,
+      role,
+      context
+    });
+    if (override !== null && override !== void 0) return override;
+    const { roles } = await this.resolveAll(normalized, context);
+    return roles.includes(role);
+  }
+  // ─── Role object ──────────────────────────────────────────────────
+  role(name) {
+    return new Role(name, this.opts.resolver, this.cache);
+  }
+  // ─── Model role assignment ────────────────────────────────────────
+  async assignRole(model, role, context) {
+    this.requireWriteResolver("assignRole");
+    const normalized = this.normalizeModel(model);
+    await this.opts.writeResolver.assignRole(normalized, role, context);
+    await this.invalidateCache(normalized, context);
+  }
+  async removeRole(model, role, context) {
+    this.requireWriteResolver("removeRole");
+    const normalized = this.normalizeModel(model);
+    await this.opts.writeResolver.removeRole(normalized, role, context);
+    await this.invalidateCache(normalized, context);
+  }
+  async syncRoles(model, roles, context) {
+    this.requireWriteResolver("syncRoles");
+    const normalized = this.normalizeModel(model);
+    await this.opts.writeResolver.syncRoles(normalized, roles, context);
+    await this.invalidateCache(normalized, context);
+  }
+  // ─── Model direct permission assignment ───────────────────────────
+  async givePermissionTo(model, permission, context) {
+    this.requireWriteResolver("givePermissionTo");
+    const normalized = this.normalizeModel(model);
+    await this.opts.writeResolver.givePermissionTo(normalized, permission, context);
+    await this.invalidateCache(normalized, context);
+  }
+  async revokePermissionTo(model, permission, context) {
+    this.requireWriteResolver("revokePermissionTo");
+    const normalized = this.normalizeModel(model);
+    await this.opts.writeResolver.revokePermissionTo(normalized, permission, context);
+    await this.invalidateCache(normalized, context);
+  }
+  async syncPermissions(model, permissions, context) {
+    this.requireWriteResolver("syncPermissions");
+    const normalized = this.normalizeModel(model);
+    await this.opts.writeResolver.syncPermissions(normalized, permissions, context);
+    await this.invalidateCache(normalized, context);
+  }
+  // ─── Role permission assignment ───────────────────────────────────
+  async assignPermissionToRole(role, permission, context) {
+    this.requireWriteResolver("assignPermissionToRole");
+    await this.opts.writeResolver.assignPermissionToRole(role, permission, context);
+    await this.invalidateRoleCache(role);
+  }
+  async revokePermissionFromRole(role, permission, context) {
+    this.requireWriteResolver("revokePermissionFromRole");
+    await this.opts.writeResolver.revokePermissionFromRole(role, permission, context);
+    await this.invalidateRoleCache(role);
+  }
+  async syncRolePermissions(role, permissions, context) {
+    this.requireWriteResolver("syncRolePermissions");
+    await this.opts.writeResolver.syncRolePermissions(role, permissions, context);
+    await this.invalidateRoleCache(role);
+  }
+  // ─── Cache management ─────────────────────────────────────────────
+  async invalidateCache(model, context) {
+    if (!this.cache) return;
+    if (context) {
+      this.cache.invalidateUserContext(model, context);
+    } else {
+      this.cache.invalidateUser(model);
+    }
+  }
+  async invalidateRoleCache(role) {
+    if (!this.cache) return;
+    this.cache.invalidateRole(role);
+  }
+  async clearCache() {
+    if (!this.cache) return;
+    this.cache.clear();
+  }
+  isCacheEnabled() {
+    return this.cache !== null;
+  }
+  cacheSize() {
+    return this.cache?.size() ?? 0;
+  }
+};
+function createAuth(opts) {
+  if (!opts.resolver) {
+    throw new Error("[permifyjs] resolver is required");
+  }
+  if (typeof opts.resolver.getRoles !== "function") {
+    throw new Error(
+      "[permifyjs] resolver.getRoles must be a function that returns Promise<string[]>"
+    );
+  }
+  if (typeof opts.resolver.getDirectPermissions !== "function") {
+    throw new Error(
+      "[permifyjs] resolver.getDirectPermissions must be a function that returns Promise<string[]>"
+    );
+  }
+  if (typeof opts.resolver.getPermissionsThroughRoles !== "function") {
+    throw new Error(
+      "[permifyjs] resolver.getPermissionsThroughRoles must be a function that returns Promise<string[]>"
+    );
+  }
+  if (typeof opts.resolver.getRolePermissions !== "function") {
+    throw new Error(
+      "[permifyjs] resolver.getRolePermissions must be a function that returns Promise<string[]>"
+    );
+  }
+  return new AuthEngine(opts);
+}
+function defineConfig(config) {
+  return config;
+}
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  AuthEngine,
+  PermissionCache,
+  Role,
+  createAuth,
+  defineConfig,
+  hasAllDirectPermissions,
+  hasAllPermissions,
+  hasAllRoles,
+  hasAnyDirectPermission,
+  hasAnyPermission,
+  hasAnyRole,
+  hasAnyRoleOrPermission,
+  hasRoleOrPermission
+});

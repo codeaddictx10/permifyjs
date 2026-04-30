@@ -1,0 +1,4 @@
+import type { PermissionWriteResolver } from '@permifyjs/core';
+import { createMongooseWriteResolver } from '@permifyjs/mongoose';
+
+export const writeResolver: PermissionWriteResolver = createMongooseWriteResolver();
