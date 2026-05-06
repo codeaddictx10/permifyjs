@@ -120,7 +120,7 @@ importers:
   packages/express:
     dependencies:
       '@permifyjs/core':
-        specifier: workspace:^0.1.1
+        specifier: workspace:^0.3.0-beta.0
         version: link:../core
     devDependencies:
       '@types/express':
@@ -142,7 +142,7 @@ importers:
   packages/mongoose:
     dependencies:
       '@permifyjs/core':
-        specifier: workspace:^0.1.1
+        specifier: workspace:^0.3.0-beta.0
         version: link:../core
     devDependencies:
       '@types/node':
@@ -167,7 +167,7 @@ importers:
   packages/nestjs:
     dependencies:
       '@permifyjs/core':
-        specifier: workspace:^0.1.1
+        specifier: workspace:^0.3.0-beta.0
         version: link:../core
     devDependencies:
       '@nestjs/common':
@@ -198,7 +198,7 @@ importers:
   packages/prisma:
     dependencies:
       '@permifyjs/core':
-        specifier: workspace:^0.1.1
+        specifier: workspace:^0.3.0-beta.0
         version: link:../core
     devDependencies:
       '@prisma/adapter-better-sqlite3':
