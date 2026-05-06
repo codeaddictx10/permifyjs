@@ -11,7 +11,7 @@ import { createPrismaWriteResolver } from '../writeResolver';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 
 const tempDirs: string[] = [];
-const packageDir = '/Users/CodeAddictx/Desktop/dev/packages/permifyjs/packages/prisma';
+const packageDir = dirname(dirname(import.meta.filename));
 const require = createRequire(import.meta.url);
 // Opt-in because Prisma's native SQLite adapter is environment-sensitive in CI/sandboxed runs.
 const runPrismaIntegration = process.env.PERMIFYJS_RUN_PRISMA_INTEGRATION === '1';

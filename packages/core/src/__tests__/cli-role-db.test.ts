@@ -1,20 +1,31 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cpSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { createRequire } from 'module';
-import { join } from 'path';
+import { dirname, join, resolve } from 'path';
 import { tmpdir } from 'os';
-import { DatabaseSync } from 'node:sqlite';
 import { registerPermifyModels } from '../../../mongoose/src';
+
+let DatabaseSync:
+  | (new (path: string) => {
+      prepare(sql: string): { get(): Record<string, unknown> | undefined };
+      close(): void;
+    })
+  | null = null;
+
+try {
+  ({ DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite'));
+} catch {
+  DatabaseSync = null;
+}
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
 const originalDatabaseUrl = process.env.DATABASE_URL;
 const originalMongoUri = process.env.MONGODB_URI;
 const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-const exampleAppDir =
-  '/Users/CodeAddictx/Desktop/dev/packages/permifyjs/examples/express-app';
-const mongooseWorkspaceDir =
-  '/Users/CodeAddictx/Desktop/dev/packages/permifyjs/packages/mongoose';
+const repoRoot = resolve(dirname(__filename), '../../../..');
+const exampleAppDir = join(repoRoot, 'examples', 'express-app');
+const mongooseWorkspaceDir = join(repoRoot, 'packages', 'mongoose');
 const runMongoCliIntegration = process.env.PERMIFYJS_RUN_MONGOOSE_INTEGRATION === '1';
 const mongooseWorkspaceRequire = createRequire(
   join(mongooseWorkspaceDir, 'package.json')
@@ -95,6 +106,10 @@ export const writeResolver: PermissionWriteResolver = createMongooseWriteResolve
 }
 
 function queryScalar(databasePath: string, sql: string): unknown {
+  if (!DatabaseSync) {
+    throw new Error('node:sqlite is unavailable in this Node.js runtime');
+  }
+
   const db = new DatabaseSync(databasePath);
 
   try {
@@ -129,7 +144,9 @@ describe('runRoleCommand() with a real Prisma DB', () => {
     }
   });
 
-  it('creates, lists, assigns, and removes roles against the project database', async () => {
+  it.skipIf(!DatabaseSync)(
+    'creates, lists, assigns, and removes roles against the project database',
+    async () => {
     const cwd = createPrismaProject();
     const dbPath = join(cwd, 'prisma', 'dev.db');
 
@@ -182,9 +199,12 @@ describe('runRoleCommand() with a real Prisma DB', () => {
            and r.name = 'editor-cli'`
       )
     ).toBe(0);
-  });
+    }
+  );
 
-  it('loads DATABASE_URL from the project .env when the shell env is unset', async () => {
+  it.skipIf(!DatabaseSync)(
+    'loads DATABASE_URL from the project .env when the shell env is unset',
+    async () => {
     const cwd = createPrismaProject();
     const dbPath = join(cwd, 'prisma', 'dev.db');
 
@@ -197,9 +217,12 @@ describe('runRoleCommand() with a real Prisma DB', () => {
     expect(
       queryScalar(dbPath, "select count(*) from roles where name = 'env-loaded-role'")
     ).toBe(1);
-  });
+    }
+  );
 
-  it('creates, lists, and assigns permissions against the project database', async () => {
+  it.skipIf(!DatabaseSync)(
+    'creates, lists, and assigns permissions against the project database',
+    async () => {
     const cwd = createPrismaProject();
     const dbPath = join(cwd, 'prisma', 'dev.db');
 
@@ -234,9 +257,12 @@ describe('runRoleCommand() with a real Prisma DB', () => {
            and p.name = 'post.publish'`
       )
     ).toBe(1);
-  });
+    }
+  );
 
-  it('reads user roles and permissions from the project database', async () => {
+  it.skipIf(!DatabaseSync)(
+    'reads user roles and permissions from the project database',
+    async () => {
     const cwd = createPrismaProject();
     const dbPath = join(cwd, 'prisma', 'dev.db');
 
@@ -264,7 +290,8 @@ describe('runRoleCommand() with a real Prisma DB', () => {
     expect(output).toContain('can create users');
     expect(output).toContain('can view all');
     expect(output).toContain('can view users');
-  });
+    }
+  );
 
   it.skipIf(!runMongoCliIntegration)(
     'runs role, permission, and user commands against a real mongoose database',
