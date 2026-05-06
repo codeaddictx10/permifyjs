@@ -7,6 +7,7 @@ import { registerPermifyModels } from '../../../mongoose/src';
 
 let DatabaseSync:
   | (new (path: string) => {
+      exec(sql: string): void;
       prepare(sql: string): { get(): Record<string, unknown> | undefined };
       close(): void;
     })
@@ -58,10 +59,73 @@ function createPrismaProject(): string {
     join(exampleAppDir, 'src', 'permifyjs', 'writeResolver.ts'),
     join(cwd, 'src', 'permifyjs', 'writeResolver.ts')
   );
-  cpSync(join(exampleAppDir, 'prisma', 'dev.db'), join(cwd, 'prisma', 'dev.db'));
+  seedPrismaDatabase(join(cwd, 'prisma', 'dev.db'));
   symlinkSync(join(exampleAppDir, 'node_modules'), join(cwd, 'node_modules'), 'dir');
 
   return cwd;
+}
+
+function seedPrismaDatabase(databasePath: string): void {
+  if (!DatabaseSync) {
+    throw new Error('node:sqlite is unavailable in this Node.js runtime');
+  }
+
+  const db = new DatabaseSync(databasePath);
+
+  try {
+    db.exec(`
+      create table roles (
+        id text primary key,
+        name text not null unique,
+        createdAt text not null default current_timestamp,
+        updatedAt text not null default current_timestamp
+      );
+
+      create table permissions (
+        id text primary key,
+        name text not null unique,
+        createdAt text not null default current_timestamp,
+        updatedAt text not null default current_timestamp
+      );
+
+      create table role_has_permissions (
+        roleId text not null,
+        permissionId text not null,
+        primary key (roleId, permissionId)
+      );
+
+      create table model_has_roles (
+        modelId text not null,
+        modelType text not null,
+        roleId text not null,
+        primary key (modelId, modelType, roleId)
+      );
+
+      create table model_has_permissions (
+        modelId text not null,
+        modelType text not null,
+        permissionId text not null,
+        primary key (modelId, modelType, permissionId)
+      );
+    `);
+
+    db.exec(`
+      insert into roles (id, name) values ('role-admin', 'admin');
+      insert into permissions (id, name) values
+        ('perm-create-users', 'can create users'),
+        ('perm-view-all', 'can view all'),
+        ('perm-view-users', 'can view users');
+      insert into role_has_permissions (roleId, permissionId) values
+        ('role-admin', 'perm-create-users'),
+        ('role-admin', 'perm-view-users');
+      insert into model_has_roles (modelId, modelType, roleId) values
+        ('1', 'User', 'role-admin');
+      insert into model_has_permissions (modelId, modelType, permissionId) values
+        ('1', 'User', 'perm-view-all');
+    `);
+  } finally {
+    db.close();
+  }
 }
 
 function createMongooseProject(mongoUri: string): string {
