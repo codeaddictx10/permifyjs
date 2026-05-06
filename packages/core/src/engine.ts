@@ -123,8 +123,7 @@ export class AuthEngine {
     model: AuthModel,
     context?: AuthContext
   ): Promise<string[]> {
-    const { directPermissions, permissionsThroughRoles } =
-      await this.resolveAll(model, context);
+    const { directPermissions, permissionsThroughRoles } = await this.resolveAll(model, context);
     return [...new Set([...directPermissions, ...permissionsThroughRoles])];
   }
 
@@ -134,6 +133,8 @@ export class AuthEngine {
     context?: AuthContext
   ): Promise<boolean> {
     const normalized = this.normalizeModel(model);
+    if (normalized.id === null || normalized.id === undefined) return false;
+
     const override = await this.opts.beforeCheck?.({
       model: normalized,
       permission,
@@ -142,6 +143,7 @@ export class AuthEngine {
     if (override !== null && override !== undefined) return override;
 
     const all = await this.getAllPermissions(normalized, context);
+
     return this.hasMatchingPermission(all, permission);
   }
 

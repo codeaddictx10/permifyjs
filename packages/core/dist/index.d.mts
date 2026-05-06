@@ -51,16 +51,17 @@ interface CacheStore<T = CacheValue> {
     keys(): Iterable<string>;
     size?(): number;
 }
+interface BeforeCheckOptions {
+    model: AuthModel;
+    permission?: string;
+    role?: string;
+    context?: AuthContext;
+}
 interface AuthOptions {
     resolver: PermissionResolver;
     writeResolver?: PermissionWriteResolver;
     cache?: CacheOptions;
-    beforeCheck?: (params: {
-        model: AuthModel;
-        permission?: string;
-        role?: string;
-        context?: AuthContext;
-    }) => boolean | null | Promise<boolean | null>;
+    beforeCheck?: (params: BeforeCheckOptions) => boolean | null | Promise<boolean | null>;
 }
 type AdapterType = 'prisma' | 'mongoose' | 'typeorm';
 type FrameworkType = 'express' | 'nestjs' | 'fastify';
@@ -95,6 +96,7 @@ declare class PermissionCache {
     constructor(opts?: CacheOptions);
     buildKey(user: AuthUser, context?: AuthContext): string;
     buildRoleKey(role: string, context?: AuthContext): string;
+    private buildContextKey;
     private userPrefix;
     private rolePrefix;
     private filterKeys;
@@ -190,4 +192,4 @@ declare function hasAllDirectPermissions(auth: AuthEngine, user: AuthUser, permi
 declare function hasRoleOrPermission(auth: AuthEngine, user: AuthUser, role: string, permission: string, context?: AuthContext): Promise<boolean>;
 declare function hasAnyRoleOrPermission(auth: AuthEngine, user: AuthUser, roles: string[], permissions: string[], context?: AuthContext): Promise<boolean>;
 
-export { type AdapterType, type AuthContext, AuthEngine, type AuthModel, type AuthOptions, type AuthUser, type BootstrapAccessOptions, type CacheEntry, type CacheOptions, type CacheStore, type CacheValue, type FrameworkType, MemoryCacheStore, type PermifyConfig, PermissionCache, type PermissionResolver, type PermissionWriteResolver, Role, type RoleCacheEntry, type RoleSeedDefinition, type RoleSeedMap, type SeedRolesOptions, bootstrapAccess, createAuth, defineConfig, defineRoles, hasAllDirectPermissions, hasAllPermissions, hasAllRoles, hasAnyDirectPermission, hasAnyPermission, hasAnyRole, hasAnyRoleOrPermission, hasRoleOrPermission, seedRoles, syncRolesAndPermissions };
+export { type AdapterType, type AuthContext, AuthEngine, type AuthModel, type AuthOptions, type AuthUser, type BeforeCheckOptions, type BootstrapAccessOptions, type CacheEntry, type CacheOptions, type CacheStore, type CacheValue, type FrameworkType, MemoryCacheStore, type PermifyConfig, PermissionCache, type PermissionResolver, type PermissionWriteResolver, Role, type RoleCacheEntry, type RoleSeedDefinition, type RoleSeedMap, type SeedRolesOptions, bootstrapAccess, createAuth, defineConfig, defineRoles, hasAllDirectPermissions, hasAllPermissions, hasAllRoles, hasAnyDirectPermission, hasAnyPermission, hasAnyRole, hasAnyRoleOrPermission, hasRoleOrPermission, seedRoles, syncRolesAndPermissions };

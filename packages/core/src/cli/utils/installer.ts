@@ -10,6 +10,7 @@ export async function installPackages(
   const commands: Record<PackageManager, string[]> = {
     pnpm: ['pnpm', 'add', ...(dev ? ['-D'] : []), ...packages],
     yarn: ['yarn', 'add', ...(dev ? ['--dev'] : []), ...packages],
+    bun: ['bun', 'add', ...(dev ? ['--dev'] : []), ...packages],
     npm: ['npm', 'install', ...(dev ? ['--save-dev'] : ['--save']), ...packages],
   };
 

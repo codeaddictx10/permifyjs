@@ -52,13 +52,23 @@ export class PermissionCache {
   // ─── Key generation ───────────────────────────────────────────────
 
   buildKey(user: AuthUser, context?: AuthContext): string {
-    const contextKey = context ? JSON.stringify(context) : 'default';
+    const contextKey = this.buildContextKey(context);
     return `${this.prefix}:${user.id}:${contextKey}`;
   }
 
   buildRoleKey(role: string, context?: AuthContext): string {
-    const contextKey = context ? JSON.stringify(context) : 'default';
+    const contextKey = this.buildContextKey(context);
     return `${this.prefix}:role:${role}:${contextKey}`;
+  }
+
+  private buildContextKey(context?: AuthContext): string {
+    if (context) {
+      let key = JSON.stringify(context);
+      if (key != "{}") {
+        return key;
+      }
+    }
+    return `default`;
   }
 
   private userPrefix(user: AuthUser): string {
@@ -66,6 +76,7 @@ export class PermissionCache {
   }
 
   private rolePrefix(role: string): string {
+    // Q
     return `${this.prefix}:role:${role}:`;
   }
 

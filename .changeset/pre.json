@@ -1,0 +1,15 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "express-prisma-example": "0.1.0",
+    "@permifyjs/core": "0.2.0",
+    "@permifyjs/express": "0.2.0",
+    "@permifyjs/mongoose": "0.2.0",
+    "@permifyjs/nestjs": "0.2.0",
+    "@permifyjs/prisma": "0.2.0"
+  },
+  "changesets": [
+    "long-mugs-flash"
+  ]
+}

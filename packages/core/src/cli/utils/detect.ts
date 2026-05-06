@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'fs';
 import { dirname, extname, join, relative } from 'path';
 import process from 'process';
 
-export type PackageManager = 'pnpm' | 'yarn' | 'npm';
+export type PackageManager = 'pnpm' | 'yarn' | 'bun' | 'npm';
 
 const COMMON_PRISMA_PATHS = [
   'prisma/schema.prisma',
@@ -135,6 +135,7 @@ export function detectPrismaClientImportPath(
 export function detectPackageManager(cwd = process.cwd()): PackageManager {
   if (existsSync(join(cwd, 'pnpm-lock.yaml'))) return 'pnpm';
   if (existsSync(join(cwd, 'yarn.lock'))) return 'yarn';
+  if (existsSync(join(cwd, 'bun.lockb'))) return 'bun';
   return 'npm';
 }
 

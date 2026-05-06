@@ -1,5 +1,23 @@
 # @permifyjs/express
 
+## 0.3.0-beta.0
+
+### Minor Changes
+
+- Add live Prisma and Mongoose-backed CLI role, permission, and user commands, plus project runtime loading improvements and packaged CLI template fixes.
+
+### Patch Changes
+
+- Updated dependencies
+  - @permifyjs/core@0.3.0-beta.0
+
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @permifyjs/core@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

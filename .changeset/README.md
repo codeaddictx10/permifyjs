@@ -34,3 +34,5 @@ This builds the publishable packages and publishes them through Changesets.
 - The root workspace package is private and is never published.
 - Until the project is production-ready, use npm dist-tags like `beta`
   intentionally when publishing prereleases.
+- GitHub Actions publishes beta releases automatically from `main` using
+  `.github/workflows/release.yml`.

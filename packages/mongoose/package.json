@@ -1,6 +1,6 @@
 {
   "name": "@permifyjs/mongoose",
-  "version": "0.1.1",
+  "version": "0.3.0-beta.0",
   "description": "Mongoose adapter for PermifyJS",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -49,7 +49,7 @@
   },
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
-    "@permifyjs/core": "workspace:^0.1.1"
+    "@permifyjs/core": "workspace:^0.3.0-beta.0"
   },
   "peerDependencies": {
     "mongoose": "^8.19.2"

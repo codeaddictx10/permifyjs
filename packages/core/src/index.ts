@@ -13,6 +13,7 @@ export type {
   PermifyConfig,
   AdapterType,
   FrameworkType,
+  BeforeCheckOptions,
 } from './types';
 
 export { AuthEngine, createAuth, defineConfig } from './engine';

@@ -67,16 +67,18 @@ export interface CacheStore<T = CacheValue> {
   size?(): number;
 }
 
+export interface BeforeCheckOptions {
+  model: AuthModel;
+  permission?: string;
+  role?: string;
+  context?: AuthContext;
+}
+
 export interface AuthOptions {
   resolver: PermissionResolver;
   writeResolver?: PermissionWriteResolver;
   cache?: CacheOptions;
-  beforeCheck?: (params: {
-    model: AuthModel;
-    permission?: string;
-    role?: string;
-    context?: AuthContext;
-  }) => boolean | null | Promise<boolean | null>;
+  beforeCheck?: (params: BeforeCheckOptions) => boolean | null | Promise<boolean | null>;
 }
 
 // ─── Config types (used by CLI) ───────────────────────────────────

@@ -31,12 +31,21 @@ var PermissionCache = class {
   }
   // ─── Key generation ───────────────────────────────────────────────
   buildKey(user, context) {
-    const contextKey = context ? JSON.stringify(context) : "default";
+    const contextKey = this.buildContextKey(context);
     return `${this.prefix}:${user.id}:${contextKey}`;
   }
   buildRoleKey(role, context) {
-    const contextKey = context ? JSON.stringify(context) : "default";
+    const contextKey = this.buildContextKey(context);
     return `${this.prefix}:role:${role}:${contextKey}`;
+  }
+  buildContextKey(context) {
+    if (context) {
+      let key = JSON.stringify(context);
+      if (key != "{}") {
+        return key;
+      }
+    }
+    return `default`;
   }
   userPrefix(user) {
     return `${this.prefix}:${user.id}:`;
@@ -353,6 +362,7 @@ var AuthEngine = class {
   }
   async can(model, permission, context) {
     const normalized = this.normalizeModel(model);
+    if (normalized.id === null || normalized.id === void 0) return false;
     const override = await this.opts.beforeCheck?.({
       model: normalized,
       permission,

@@ -2229,7 +2229,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
         args = args.slice();
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
-        function findFile(baseDir, baseName) {
+        function findFile2(baseDir, baseName) {
           const localBin = path6.resolve(baseDir, baseName);
           if (fs2.existsSync(localBin)) return localBin;
           if (sourceExt.includes(path6.extname(baseName))) return void 0;
@@ -2256,14 +2256,14 @@ Expecting one of '${allowedValues.join("', '")}'`);
           );
         }
         if (executableDir) {
-          let localFile = findFile(executableDir, executableFile);
+          let localFile = findFile2(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
             const legacyName = path6.basename(
               this._scriptPath,
               path6.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
-              localFile = findFile(
+              localFile = findFile2(
                 executableDir,
                 `${legacyName}-${subcommand._name}`
               );
@@ -3974,7 +3974,7 @@ var require_prompt = __commonJS({
 var require_text = __commonJS({
   "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/prompts@2.4.2/node_modules/prompts/dist/elements/text.js"(exports2, module2) {
     "use strict";
-    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    function asyncGeneratorStep(gen, resolve2, reject, _next, _throw, key, arg) {
       try {
         var info2 = gen[key](arg);
         var value = info2.value;
@@ -3983,7 +3983,7 @@ var require_text = __commonJS({
         return;
       }
       if (info2.done) {
-        resolve(value);
+        resolve2(value);
       } else {
         Promise.resolve(value).then(_next, _throw);
       }
@@ -3991,13 +3991,13 @@ var require_text = __commonJS({
     function _asyncToGenerator(fn) {
       return function() {
         var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           var gen = fn.apply(self, args);
           function _next(value) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "next", value);
           }
           function _throw(err) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "throw", err);
           }
           _next(void 0);
         });
@@ -4713,7 +4713,7 @@ var require_dateparts = __commonJS({
 var require_date = __commonJS({
   "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/prompts@2.4.2/node_modules/prompts/dist/elements/date.js"(exports2, module2) {
     "use strict";
-    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    function asyncGeneratorStep(gen, resolve2, reject, _next, _throw, key, arg) {
       try {
         var info2 = gen[key](arg);
         var value = info2.value;
@@ -4722,7 +4722,7 @@ var require_date = __commonJS({
         return;
       }
       if (info2.done) {
-        resolve(value);
+        resolve2(value);
       } else {
         Promise.resolve(value).then(_next, _throw);
       }
@@ -4730,13 +4730,13 @@ var require_date = __commonJS({
     function _asyncToGenerator(fn) {
       return function() {
         var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           var gen = fn.apply(self, args);
           function _next(value) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "next", value);
           }
           function _throw(err) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "throw", err);
           }
           _next(void 0);
         });
@@ -4939,7 +4939,7 @@ ${i2 ? ` ` : figures2.pointerSmall} ${color.red().italic(l)}`, ``);
 var require_number = __commonJS({
   "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/prompts@2.4.2/node_modules/prompts/dist/elements/number.js"(exports2, module2) {
     "use strict";
-    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    function asyncGeneratorStep(gen, resolve2, reject, _next, _throw, key, arg) {
       try {
         var info2 = gen[key](arg);
         var value = info2.value;
@@ -4948,7 +4948,7 @@ var require_number = __commonJS({
         return;
       }
       if (info2.done) {
-        resolve(value);
+        resolve2(value);
       } else {
         Promise.resolve(value).then(_next, _throw);
       }
@@ -4956,13 +4956,13 @@ var require_number = __commonJS({
     function _asyncToGenerator(fn) {
       return function() {
         var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           var gen = fn.apply(self, args);
           function _next(value) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "next", value);
           }
           function _throw(err) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "throw", err);
           }
           _next(void 0);
         });
@@ -5385,7 +5385,7 @@ Instructions:
 var require_autocomplete = __commonJS({
   "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/prompts@2.4.2/node_modules/prompts/dist/elements/autocomplete.js"(exports2, module2) {
     "use strict";
-    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    function asyncGeneratorStep(gen, resolve2, reject, _next, _throw, key, arg) {
       try {
         var info2 = gen[key](arg);
         var value = info2.value;
@@ -5394,7 +5394,7 @@ var require_autocomplete = __commonJS({
         return;
       }
       if (info2.done) {
-        resolve(value);
+        resolve2(value);
       } else {
         Promise.resolve(value).then(_next, _throw);
       }
@@ -5402,13 +5402,13 @@ var require_autocomplete = __commonJS({
     function _asyncToGenerator(fn) {
       return function() {
         var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           var gen = fn.apply(self, args);
           function _next(value) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "next", value);
           }
           function _throw(err) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "throw", err);
           }
           _next(void 0);
         });
@@ -6039,7 +6039,7 @@ var require_dist = __commonJS({
       for (var i2 = 0, arr2 = new Array(len); i2 < len; i2++) arr2[i2] = arr[i2];
       return arr2;
     }
-    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    function asyncGeneratorStep(gen, resolve2, reject, _next, _throw, key, arg) {
       try {
         var info2 = gen[key](arg);
         var value = info2.value;
@@ -6048,7 +6048,7 @@ var require_dist = __commonJS({
         return;
       }
       if (info2.done) {
-        resolve(value);
+        resolve2(value);
       } else {
         Promise.resolve(value).then(_next, _throw);
       }
@@ -6056,13 +6056,13 @@ var require_dist = __commonJS({
     function _asyncToGenerator(fn) {
       return function() {
         var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           var gen = fn.apply(self, args);
           function _next(value) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "next", value);
           }
           function _throw(err) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "throw", err);
           }
           _next(void 0);
         });
@@ -11387,7 +11387,7 @@ var require_util3 = __commonJS({
       return path6;
     }
     exports2.normalize = normalize;
-    function join4(aRoot, aPath) {
+    function join5(aRoot, aPath) {
       if (aRoot === "") {
         aRoot = ".";
       }
@@ -11419,7 +11419,7 @@ var require_util3 = __commonJS({
       }
       return joined;
     }
-    exports2.join = join4;
+    exports2.join = join5;
     exports2.isAbsolute = function(aPath) {
       return aPath.charAt(0) === "/" || urlRegexp.test(aPath);
     };
@@ -11592,7 +11592,7 @@ var require_util3 = __commonJS({
             parsed.path = parsed.path.substring(0, index + 1);
           }
         }
-        sourceURL = join4(urlGenerate(parsed), sourceURL);
+        sourceURL = join5(urlGenerate(parsed), sourceURL);
       }
       return normalize(sourceURL);
     }
@@ -14235,8 +14235,8 @@ var require_universalify = __commonJS({
       return Object.defineProperty(function(...args) {
         if (typeof args[args.length - 1] === "function") fn.apply(this, args);
         else {
-          return new Promise((resolve, reject) => {
-            args.push((err, res) => err != null ? reject(err) : resolve(res));
+          return new Promise((resolve2, reject) => {
+            args.push((err, res) => err != null ? reject(err) : resolve2(res));
             fn.apply(this, args);
           });
         }
@@ -15091,18 +15091,18 @@ var require_fs = __commonJS({
       if (typeof callback === "function") {
         return fs2.exists(filename, callback);
       }
-      return new Promise((resolve) => {
-        return fs2.exists(filename, resolve);
+      return new Promise((resolve2) => {
+        return fs2.exists(filename, resolve2);
       });
     };
     exports2.read = function(fd, buffer, offset, length, position, callback) {
       if (typeof callback === "function") {
         return fs2.read(fd, buffer, offset, length, position, callback);
       }
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         fs2.read(fd, buffer, offset, length, position, (err, bytesRead, buffer2) => {
           if (err) return reject(err);
-          resolve({ bytesRead, buffer: buffer2 });
+          resolve2({ bytesRead, buffer: buffer2 });
         });
       });
     };
@@ -15110,10 +15110,10 @@ var require_fs = __commonJS({
       if (typeof args[args.length - 1] === "function") {
         return fs2.write(fd, buffer, ...args);
       }
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         fs2.write(fd, buffer, ...args, (err, bytesWritten, buffer2) => {
           if (err) return reject(err);
-          resolve({ bytesWritten, buffer: buffer2 });
+          resolve2({ bytesWritten, buffer: buffer2 });
         });
       });
     };
@@ -15121,10 +15121,10 @@ var require_fs = __commonJS({
       if (typeof args[args.length - 1] === "function") {
         return fs2.readv(fd, buffers, ...args);
       }
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         fs2.readv(fd, buffers, ...args, (err, bytesRead, buffers2) => {
           if (err) return reject(err);
-          resolve({ bytesRead, buffers: buffers2 });
+          resolve2({ bytesRead, buffers: buffers2 });
         });
       });
     };
@@ -15132,10 +15132,10 @@ var require_fs = __commonJS({
       if (typeof args[args.length - 1] === "function") {
         return fs2.writev(fd, buffers, ...args);
       }
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         fs2.writev(fd, buffers, ...args, (err, bytesWritten, buffers2) => {
           if (err) return reject(err);
-          resolve({ bytesWritten, buffers: buffers2 });
+          resolve2({ bytesWritten, buffers: buffers2 });
         });
       });
     };
@@ -16090,16 +16090,13 @@ var require_ensure = __commonJS({
   }
 });
 
-// ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.1/node_modules/jsonfile/utils.js
+// ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.0/node_modules/jsonfile/utils.js
 var require_utils3 = __commonJS({
-  "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.1/node_modules/jsonfile/utils.js"(exports2, module2) {
+  "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.0/node_modules/jsonfile/utils.js"(exports2, module2) {
     "use strict";
     function stringify(obj, { EOL = "\n", finalEOL = true, replacer = null, spaces } = {}) {
       const EOF = finalEOL ? EOL : "";
       const str = JSON.stringify(obj, replacer, spaces);
-      if (str === void 0) {
-        throw new TypeError(`Converting ${typeof obj} value to JSON is not supported`);
-      }
       return str.replace(/\n/g, EOL) + EOF;
     }
     function stripBom(content) {
@@ -16110,9 +16107,9 @@ var require_utils3 = __commonJS({
   }
 });
 
-// ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.1/node_modules/jsonfile/index.js
+// ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.0/node_modules/jsonfile/index.js
 var require_jsonfile = __commonJS({
-  "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.1/node_modules/jsonfile/index.js"(exports2, module2) {
+  "../../../../../../Library/pnpm/global/5/node_modules/.pnpm/jsonfile@6.2.0/node_modules/jsonfile/index.js"(exports2, module2) {
     "use strict";
     var _fs;
     try {
@@ -16144,7 +16141,7 @@ var require_jsonfile = __commonJS({
       return obj;
     }
     var readFile2 = universalify.fromPromise(_readFile);
-    function readFileSync4(file, options = {}) {
+    function readFileSync7(file, options = {}) {
       if (typeof options === "string") {
         options = { encoding: options };
       }
@@ -16176,7 +16173,7 @@ var require_jsonfile = __commonJS({
     }
     module2.exports = {
       readFile: readFile2,
-      readFileSync: readFileSync4,
+      readFileSync: readFileSync7,
       writeFile: writeFile2,
       writeFileSync: writeFileSync2
     };
@@ -16509,12 +16506,12 @@ var require_isexe = __commonJS({
         if (typeof Promise !== "function") {
           throw new TypeError("callback not provided");
         }
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           isexe(path6, options || {}, function(er, is) {
             if (er) {
               reject(er);
             } else {
-              resolve(is);
+              resolve2(is);
             }
           });
         });
@@ -16581,27 +16578,27 @@ var require_which = __commonJS({
         opt = {};
       const { pathEnv, pathExt, pathExtExe } = getPathInfo(cmd, opt);
       const found = [];
-      const step = (i2) => new Promise((resolve, reject) => {
+      const step = (i2) => new Promise((resolve2, reject) => {
         if (i2 === pathEnv.length)
-          return opt.all && found.length ? resolve(found) : reject(getNotFoundError(cmd));
+          return opt.all && found.length ? resolve2(found) : reject(getNotFoundError(cmd));
         const ppRaw = pathEnv[i2];
         const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
         const pCmd = path6.join(pathPart, cmd);
         const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
-        resolve(subStep(p, i2, 0));
+        resolve2(subStep(p, i2, 0));
       });
-      const subStep = (p, i2, ii) => new Promise((resolve, reject) => {
+      const subStep = (p, i2, ii) => new Promise((resolve2, reject) => {
         if (ii === pathExt.length)
-          return resolve(step(i2 + 1));
+          return resolve2(step(i2 + 1));
         const ext = pathExt[ii];
         isexe(p + ext, { pathExt: pathExtExe }, (er, is) => {
           if (!er && is) {
             if (opt.all)
               found.push(p + ext);
             else
-              return resolve(p + ext);
+              return resolve2(p + ext);
           }
-          return resolve(subStep(p, i2, ii + 1));
+          return resolve2(subStep(p, i2, ii + 1));
         });
       });
       return cb ? step(0).then((res) => cb(null, res), cb) : step(0);
@@ -20492,6 +20489,7 @@ function detectPrismaClientImportPath(srcDir = detectSrcDir(), cwd = import_proc
 function detectPackageManager(cwd = import_process.default.cwd()) {
   if ((0, import_fs.existsSync)((0, import_path2.join)(cwd, "pnpm-lock.yaml"))) return "pnpm";
   if ((0, import_fs.existsSync)((0, import_path2.join)(cwd, "yarn.lock"))) return "yarn";
+  if ((0, import_fs.existsSync)((0, import_path2.join)(cwd, "bun.lockb"))) return "bun";
   return "npm";
 }
 function detectPrisma(cwd = import_process.default.cwd()) {
@@ -22020,8 +22018,8 @@ var disconnect = (anyProcess) => {
 // ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/execa@9.6.1/node_modules/execa/lib/utils/deferred.js
 var createDeferred = () => {
   const methods = {};
-  const promise = new Promise((resolve, reject) => {
-    Object.assign(methods, { resolve, reject });
+  const promise = new Promise((resolve2, reject) => {
+    Object.assign(methods, { resolve: resolve2, reject });
   });
   return Object.assign(promise, methods);
 };
@@ -26422,11 +26420,11 @@ var addConcurrentStream = (concurrentStreams, stream, waitName) => {
   const promises = weakMap.get(stream);
   const promise = createDeferred();
   promises.push(promise);
-  const resolve = promise.resolve.bind(promise);
-  return { resolve, promises };
+  const resolve2 = promise.resolve.bind(promise);
+  return { resolve: resolve2, promises };
 };
-var waitForConcurrentStreams = async ({ resolve, promises }, subprocess) => {
-  resolve();
+var waitForConcurrentStreams = async ({ resolve: resolve2, promises }, subprocess) => {
+  resolve2();
   const [isSubprocessExit] = await Promise.race([
     Promise.allSettled([true, subprocess]),
     Promise.all([false, ...promises])
@@ -27017,6 +27015,7 @@ async function installPackages(packages, packageManager, dev = false) {
   const commands = {
     pnpm: ["pnpm", "add", ...dev ? ["-D"] : [], ...packages],
     yarn: ["yarn", "add", ...dev ? ["--dev"] : [], ...packages],
+    bun: ["bun", "add", ...dev ? ["--dev"] : [], ...packages],
     npm: ["npm", "install", ...dev ? ["--save-dev"] : ["--save"], ...packages]
   };
   const [cmd, ...args] = commands[packageManager];
@@ -27381,9 +27380,396 @@ async function migrateMongoose(action) {
   }
 }
 
+// src/cli/utils/mongoose.ts
+var import_fs3 = require("fs");
+
+// src/cli/utils/project.ts
+var import_fs2 = require("fs");
+var import_module = require("module");
+var import_path4 = require("path");
+var MODULE_EXTENSIONS = [".ts", ".js", ".cts", ".cjs"];
+var DEFAULT_ENV_FILES = [
+  ".env",
+  ".env.local",
+  ".env.development",
+  ".env.development.local"
+];
+var loadedEnvCwds = /* @__PURE__ */ new Set();
+function getProjectRequire(cwd = process.cwd()) {
+  const packageJsonPath = (0, import_path4.join)(cwd, "package.json");
+  const basePath = (0, import_fs2.existsSync)(packageJsonPath) ? packageJsonPath : (0, import_path4.join)(cwd, "index.js");
+  return (0, import_module.createRequire)(basePath);
+}
+function findFile(basePath) {
+  for (const extension of MODULE_EXTENSIONS) {
+    const candidate = `${basePath}${extension}`;
+    if ((0, import_fs2.existsSync)(candidate)) return candidate;
+  }
+  for (const extension of MODULE_EXTENSIONS) {
+    const candidate = (0, import_path4.join)(basePath, `index${extension}`);
+    if ((0, import_fs2.existsSync)(candidate)) return candidate;
+  }
+  return null;
+}
+function registerTypeScriptHook(projectRequire) {
+  const extensions = projectRequire.extensions;
+  if (extensions[".ts"]) {
+    return null;
+  }
+  let ts;
+  try {
+    ts = projectRequire("typescript");
+  } catch {
+    throw new Error(
+      '[permifyjs] Loading TypeScript permify modules requires "typescript" to be installed in the project'
+    );
+  }
+  const previous = /* @__PURE__ */ new Map();
+  const handledExtensions = [".ts", ".cts"];
+  for (const extension of handledExtensions) {
+    previous.set(extension, extensions[extension]);
+    extensions[extension] = (mod, filename) => {
+      const source = (0, import_fs2.readFileSync)(filename, "utf-8");
+      const output = ts.transpileModule(source, {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          moduleResolution: ts.ModuleResolutionKind.NodeJs,
+          target: ts.ScriptTarget.ES2020,
+          esModuleInterop: true
+        },
+        fileName: filename
+      });
+      mod._compile(output.outputText, filename);
+    };
+  }
+  return () => {
+    for (const [extension, handler] of previous.entries()) {
+      if (handler) {
+        extensions[extension] = handler;
+      } else {
+        delete extensions[extension];
+      }
+    }
+  };
+}
+function loadCommonJsModule(modulePath, cwd = process.cwd()) {
+  loadProjectEnv(cwd);
+  const projectRequire = getProjectRequire(cwd);
+  const restoreTypeScriptHook = (0, import_path4.extname)(modulePath) === ".ts" || (0, import_path4.extname)(modulePath) === ".cts" ? registerTypeScriptHook(projectRequire) : null;
+  try {
+    return projectRequire(modulePath);
+  } finally {
+    restoreTypeScriptHook?.();
+  }
+}
+function findProjectPermifyModule(moduleName, cwd = process.cwd()) {
+  const srcDir = detectSrcDir(cwd);
+  return findFile((0, import_path4.join)(cwd, srcDir, "permifyjs", moduleName));
+}
+function findProjectConfigModule(cwd = process.cwd()) {
+  return findFile((0, import_path4.join)(cwd, "permifyjs.config"));
+}
+function resolveProjectRelativeModule(importerPath, specifier) {
+  if (!specifier.startsWith(".")) {
+    return null;
+  }
+  return findFile((0, import_path4.resolve)((0, import_path4.dirname)(importerPath), specifier));
+}
+function loadProjectModule(modulePath, cwd = process.cwd()) {
+  return loadCommonJsModule(modulePath, cwd);
+}
+function loadProjectPackage(packageName, cwd = process.cwd()) {
+  loadProjectEnv(cwd);
+  const projectRequire = getProjectRequire(cwd);
+  return projectRequire(packageName);
+}
+function loadProjectConfig(cwd = process.cwd()) {
+  const configPath = findProjectConfigModule(cwd);
+  if (!configPath) return null;
+  const configModule = loadProjectModule(configPath, cwd);
+  return configModule.default ?? configModule ?? null;
+}
+function loadProjectEnv(cwd) {
+  if (loadedEnvCwds.has(cwd)) {
+    return;
+  }
+  for (const envFile of DEFAULT_ENV_FILES) {
+    const envPath = (0, import_path4.join)(cwd, envFile);
+    if (!(0, import_fs2.existsSync)(envPath)) continue;
+    applyEnvFile((0, import_fs2.readFileSync)(envPath, "utf-8"));
+  }
+  loadedEnvCwds.add(cwd);
+}
+function applyEnvFile(source) {
+  for (const rawLine of source.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const exportPrefix = line.startsWith("export ") ? "export " : "";
+    const assignment = exportPrefix ? line.slice(exportPrefix.length) : line;
+    const separatorIndex = assignment.indexOf("=");
+    if (separatorIndex === -1) continue;
+    const key = assignment.slice(0, separatorIndex).trim();
+    if (!key || process.env[key] !== void 0) continue;
+    let value = assignment.slice(separatorIndex + 1).trim();
+    if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
+      value = value.slice(1, -1);
+    } else {
+      const commentIndex = value.indexOf(" #");
+      if (commentIndex !== -1) {
+        value = value.slice(0, commentIndex).trimEnd();
+      }
+    }
+    process.env[key] = value.replace(/\\n/g, "\n").replace(/\\r/g, "\r").replace(/\\t/g, "	");
+  }
+}
+
+// src/cli/utils/mongoose.ts
+function resolveMongoUri() {
+  return process.env.MONGODB_URI ?? process.env.MONGO_URL ?? process.env.MONGO_URI ?? process.env.MONGODB_URL ?? process.env.DATABASE_URL ?? null;
+}
+async function loadMongooseRuntime(cwd = process.cwd()) {
+  const writeResolverPath = findProjectPermifyModule("writeResolver", cwd);
+  if (!writeResolverPath) return null;
+  const writeResolverSource = (0, import_fs3.readFileSync)(writeResolverPath, "utf-8");
+  if (!writeResolverSource.includes("createMongooseWriteResolver")) {
+    return null;
+  }
+  const writeResolverModule = loadProjectPackage("@permifyjs/mongoose", cwd);
+  if (typeof writeResolverModule.createMongooseWriteResolver !== "function" || typeof writeResolverModule.createMongooseResolver !== "function") {
+    throw new Error(
+      "[permifyjs] @permifyjs/mongoose is installed but its resolver factories could not be loaded"
+    );
+  }
+  const uri = resolveMongoUri();
+  if (!uri) {
+    throw new Error(
+      "[permifyjs] Mongoose CLI execution requires one of MONGODB_URI, MONGO_URL, MONGO_URI, MONGODB_URL, or DATABASE_URL"
+    );
+  }
+  const mongoose = loadProjectPackage("mongoose", cwd);
+  const connection = await mongoose.createConnection(uri).asPromise();
+  const config = loadProjectConfig(cwd);
+  return {
+    connection,
+    createMongooseResolver: writeResolverModule.createMongooseResolver,
+    createMongooseWriteResolver: writeResolverModule.createMongooseWriteResolver,
+    collectionNames: config?.tables
+  };
+}
+
+// src/cli/utils/prisma.ts
+var import_fs4 = require("fs");
+function findImportedBinding(source, identifier) {
+  const defaultImportPattern = new RegExp(
+    String.raw`import\s+${identifier}\s*(?:,\s*\{[^}]*\})?\s*from\s*['"]([^'"]+)['"]`
+  );
+  const defaultMatch = source.match(defaultImportPattern);
+  if (defaultMatch) {
+    return { specifier: defaultMatch[1], exportName: "default" };
+  }
+  const namedImports = source.matchAll(
+    /import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"]/g
+  );
+  for (const match of namedImports) {
+    const bindings = match[1].split(",").map((binding) => binding.trim());
+    for (const binding of bindings) {
+      if (binding === identifier) {
+        return { specifier: match[2], exportName: identifier };
+      }
+      const aliasMatch = binding.match(
+        /^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/
+      );
+      if (aliasMatch && aliasMatch[2] === identifier) {
+        return { specifier: match[2], exportName: aliasMatch[1] };
+      }
+    }
+  }
+  return null;
+}
+async function loadPrismaRuntime(cwd = process.cwd()) {
+  const writeResolverPath = findProjectPermifyModule("writeResolver", cwd);
+  if (!writeResolverPath) return null;
+  const writeResolverSource = (0, import_fs4.readFileSync)(writeResolverPath, "utf-8");
+  if (!writeResolverSource.includes("createPrismaWriteResolver")) {
+    return null;
+  }
+  const argumentMatch = writeResolverSource.match(
+    /createPrismaWriteResolver\(\s*([A-Za-z_$][\w$]*)\s*\)/
+  );
+  if (!argumentMatch) return null;
+  const importedBinding = findImportedBinding(writeResolverSource, argumentMatch[1]);
+  if (!importedBinding) return null;
+  const dbModulePath = resolveProjectRelativeModule(
+    writeResolverPath,
+    importedBinding.specifier
+  );
+  if (!dbModulePath) {
+    throw new Error(
+      `[permifyjs] Could not resolve Prisma client module "${importedBinding.specifier}" from ${writeResolverPath}`
+    );
+  }
+  const dbModule = loadProjectModule(dbModulePath, cwd);
+  const prisma = importedBinding.exportName === "default" ? dbModule.default : dbModule[importedBinding.exportName];
+  if (!prisma || typeof prisma !== "object") {
+    throw new Error(
+      `[permifyjs] Failed to load Prisma client from ${dbModulePath}`
+    );
+  }
+  const prismaPackage = loadProjectPackage("@permifyjs/prisma", cwd);
+  if (typeof prismaPackage.createPrismaResolver !== "function") {
+    throw new Error(
+      "[permifyjs] @permifyjs/prisma is installed but createPrismaResolver could not be loaded"
+    );
+  }
+  if (typeof prismaPackage.createPrismaWriteResolver !== "function") {
+    throw new Error(
+      "[permifyjs] @permifyjs/prisma is installed but createPrismaWriteResolver could not be loaded"
+    );
+  }
+  return {
+    prisma,
+    createPrismaResolver: prismaPackage.createPrismaResolver,
+    createPrismaWriteResolver: prismaPackage.createPrismaWriteResolver
+  };
+}
+
+// src/cli/utils/strategy.ts
+async function resolveCliAdapterStrategy(cwd = process.cwd()) {
+  const adapter = detectInstalledAdapter(cwd);
+  if (adapter === "typeorm") {
+    throw new Error(
+      "[permifyjs] TypeORM CLI execution is not available yet because the @permifyjs/typeorm adapter package is not implemented in this repo"
+    );
+  }
+  if (adapter === "prisma") {
+    const runtime = await loadPrismaRuntime(cwd);
+    return runtime ? createPrismaStrategy(runtime) : null;
+  }
+  if (adapter === "mongoose") {
+    const runtime = await loadMongooseRuntime(cwd);
+    return runtime ? createMongooseStrategy(runtime) : null;
+  }
+  return null;
+}
+function createPrismaStrategy(runtime) {
+  const resolver = runtime.createPrismaResolver(runtime.prisma);
+  const writeResolver = runtime.createPrismaWriteResolver(runtime.prisma);
+  return {
+    async createRole(name) {
+      const existing = await runtime.prisma.permifyRole?.findUnique({
+        where: { name }
+      });
+      if (existing) return "exists";
+      await runtime.prisma.permifyRole?.create({
+        data: { name }
+      });
+      return "created";
+    },
+    async listRoles() {
+      const roles = await runtime.prisma.permifyRole?.findMany({
+        orderBy: { name: "asc" }
+      }) ?? [];
+      return roles.map((role) => role.name);
+    },
+    async assignRole(model, role) {
+      await writeResolver.assignRole(model, role);
+    },
+    async removeRole(model, role) {
+      await writeResolver.removeRole(model, role);
+    },
+    async createPermission(name) {
+      const existing = await runtime.prisma.permifyPermission?.findUnique({
+        where: { name }
+      });
+      if (existing) return "exists";
+      await runtime.prisma.permifyPermission?.create({
+        data: { name }
+      });
+      return "created";
+    },
+    async listPermissions() {
+      const permissions = await runtime.prisma.permifyPermission?.findMany({
+        orderBy: { name: "asc" }
+      }) ?? [];
+      return permissions.map((permission) => permission.name);
+    },
+    async assignPermissionToRole(role, permission) {
+      await writeResolver.assignPermissionToRole(role, permission);
+    },
+    async getRoles(model) {
+      return resolver.getRoles(model);
+    },
+    async getPermissions(model) {
+      const [directPermissions, permissionsThroughRoles] = await Promise.all([
+        resolver.getDirectPermissions(model),
+        resolver.getPermissionsThroughRoles(model)
+      ]);
+      return [.../* @__PURE__ */ new Set([...directPermissions, ...permissionsThroughRoles])].sort();
+    },
+    async dispose() {
+      await runtime.prisma.$disconnect?.();
+    }
+  };
+}
+function createMongooseStrategy(runtime) {
+  const resolver = runtime.createMongooseResolver({
+    connection: runtime.connection,
+    collectionNames: runtime.collectionNames
+  });
+  const writeResolver = runtime.createMongooseWriteResolver({
+    connection: runtime.connection,
+    collectionNames: runtime.collectionNames
+  });
+  const Role = runtime.connection.model("PermifyRole");
+  const Permission = runtime.connection.model("PermifyPermission");
+  return {
+    async createRole(name) {
+      const existing = await Role.findOne({ name }).lean();
+      if (existing) return "exists";
+      await Role.create({ name });
+      return "created";
+    },
+    async listRoles() {
+      const roles = await Role.find({}).sort({ name: 1 }).select({ name: 1, _id: 0 }).lean();
+      return roles.map((role) => role.name);
+    },
+    async assignRole(model, role) {
+      await writeResolver.assignRole(model, role);
+    },
+    async removeRole(model, role) {
+      await writeResolver.removeRole(model, role);
+    },
+    async createPermission(name) {
+      const existing = await Permission.findOne({ name }).lean();
+      if (existing) return "exists";
+      await Permission.create({ name });
+      return "created";
+    },
+    async listPermissions() {
+      const permissions = await Permission.find({}).sort({ name: 1 }).select({ name: 1, _id: 0 }).lean();
+      return permissions.map((permission) => permission.name);
+    },
+    async assignPermissionToRole(role, permission) {
+      await writeResolver.assignPermissionToRole(role, permission);
+    },
+    async getRoles(model) {
+      return resolver.getRoles(model);
+    },
+    async getPermissions(model) {
+      const [directPermissions, permissionsThroughRoles] = await Promise.all([
+        resolver.getDirectPermissions(model),
+        resolver.getPermissionsThroughRoles(model)
+      ]);
+      return [.../* @__PURE__ */ new Set([...directPermissions, ...permissionsThroughRoles])].sort();
+    },
+    async dispose() {
+      await runtime.connection.close();
+    }
+  };
+}
+
 // src/cli/commands/role.ts
-async function runRoleCommand(action, opts) {
-  logger.blank();
+function printFallback(action, opts) {
   logger.info(`role:${action} \u2014 connect this to your resolver to execute`);
   logger.step("Use auth.assignRole(), auth.removeRole() in your app code");
   logger.step("Or seed directly via your DB client");
@@ -27403,10 +27789,66 @@ async function runRoleCommand(action, opts) {
       break;
   }
 }
+async function runRoleCommand(action, opts) {
+  logger.blank();
+  const strategy = await resolveCliAdapterStrategy();
+  if (!strategy) {
+    printFallback(action, opts);
+    return;
+  }
+  try {
+    switch (action) {
+      case "create": {
+        const result = await strategy.createRole(opts.name);
+        if (result === "exists") {
+          logger.warn(`Role already exists: ${opts.name}`);
+          break;
+        }
+        logger.success(`Created role: ${opts.name}`);
+        break;
+      }
+      case "list": {
+        const roles = await strategy.listRoles();
+        if (roles.length === 0) {
+          logger.info("No roles found.");
+          break;
+        }
+        logger.info("Roles:");
+        for (const role of roles) {
+          logger.step(role);
+        }
+        break;
+      }
+      case "assign":
+        await strategy.assignRole(
+          { id: opts.modelId, modelType: opts.modelType },
+          opts.role
+        );
+        logger.success(
+          `Assigned role ${opts.role} to ${opts.modelType}:${opts.modelId}`
+        );
+        break;
+      case "remove":
+        await strategy.removeRole(
+          { id: opts.modelId, modelType: opts.modelType },
+          opts.role
+        );
+        logger.success(
+          `Removed role ${opts.role} from ${opts.modelType}:${opts.modelId}`
+        );
+        break;
+      default:
+        logger.warn(`Unknown role action: ${action}`);
+        break;
+    }
+  } finally {
+    await strategy.dispose();
+  }
+  logger.blank();
+}
 
 // src/cli/commands/permission.ts
-async function runPermissionCommand(action, opts) {
-  logger.blank();
+function printFallback2(action, opts) {
   switch (action) {
     case "create":
       logger.info(`Creating permission: ${opts.name}`);
@@ -27422,10 +27864,54 @@ async function runPermissionCommand(action, opts) {
   logger.step("Or seed directly via your DB client");
   logger.blank();
 }
+async function runPermissionCommand(action, opts) {
+  logger.blank();
+  const strategy = await resolveCliAdapterStrategy();
+  if (!strategy) {
+    printFallback2(action, opts);
+    return;
+  }
+  try {
+    switch (action) {
+      case "create": {
+        const result = await strategy.createPermission(opts.name);
+        if (result === "exists") {
+          logger.warn(`Permission already exists: ${opts.name}`);
+          break;
+        }
+        logger.success(`Created permission: ${opts.name}`);
+        break;
+      }
+      case "list": {
+        const permissions = await strategy.listPermissions();
+        if (permissions.length === 0) {
+          logger.info("No permissions found.");
+          break;
+        }
+        logger.info("Permissions:");
+        for (const permission of permissions) {
+          logger.step(permission);
+        }
+        break;
+      }
+      case "assign":
+        await strategy.assignPermissionToRole(opts.role, opts.permission);
+        logger.success(
+          `Assigned permission ${opts.permission} to role ${opts.role}`
+        );
+        break;
+      default:
+        logger.warn(`Unknown permission action: ${action}`);
+        break;
+    }
+  } finally {
+    await strategy.dispose();
+  }
+  logger.blank();
+}
 
 // src/cli/commands/user.ts
-async function runUserCommand(action, opts) {
-  logger.blank();
+function printFallback3(action, opts) {
   switch (action) {
     case "roles":
       logger.info(`Roles for ${opts.modelType}:${opts.modelId}`);
@@ -27435,6 +27921,49 @@ async function runUserCommand(action, opts) {
       logger.info(`Permissions for ${opts.modelType}:${opts.modelId}`);
       logger.step("Use auth.getAllPermissions() in your app");
       break;
+  }
+  logger.blank();
+}
+async function runUserCommand(action, opts) {
+  logger.blank();
+  const strategy = await resolveCliAdapterStrategy();
+  if (!strategy) {
+    printFallback3(action, opts);
+    return;
+  }
+  try {
+    const model = { id: opts.modelId, modelType: opts.modelType };
+    switch (action) {
+      case "roles": {
+        const roles = await strategy.getRoles(model);
+        logger.info(`Roles for ${opts.modelType}:${opts.modelId}`);
+        if (roles.length === 0) {
+          logger.step("No roles found.");
+          break;
+        }
+        for (const role of roles) {
+          logger.step(role);
+        }
+        break;
+      }
+      case "permissions": {
+        const permissions = await strategy.getPermissions(model);
+        logger.info(`Permissions for ${opts.modelType}:${opts.modelId}`);
+        if (permissions.length === 0) {
+          logger.step("No permissions found.");
+          break;
+        }
+        for (const permission of permissions) {
+          logger.step(permission);
+        }
+        break;
+      }
+      default:
+        logger.warn(`Unknown user action: ${action}`);
+        break;
+    }
+  } finally {
+    await strategy.dispose();
   }
   logger.blank();
 }
