@@ -5,16 +5,29 @@ import { dirname, join } from 'path';
 import { createRequire } from 'module';
 import { tmpdir } from 'os';
 import { pathToFileURL } from 'url';
-import { DatabaseSync } from 'node:sqlite';
 import { createPrismaResolver } from '../resolver';
 import { createPrismaWriteResolver } from '../writeResolver';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+
+let DatabaseSync:
+  | (new (path: string) => {
+      prepare(sql: string): { get(): Record<string, unknown> | undefined };
+      close(): void;
+    })
+  | null = null;
+
+try {
+  ({ DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite'));
+} catch {
+  DatabaseSync = null;
+}
 
 const tempDirs: string[] = [];
 const packageDir = dirname(dirname(import.meta.filename));
 const require = createRequire(import.meta.url);
 // Opt-in because Prisma's native SQLite adapter is environment-sensitive in CI/sandboxed runs.
-const runPrismaIntegration = process.env.PERMIFYJS_RUN_PRISMA_INTEGRATION === '1';
+const runPrismaIntegration =
+  process.env.PERMIFYJS_RUN_PRISMA_INTEGRATION === '1' && DatabaseSync !== null;
 
 function createTempDir(): string {
   const dir = mkdtempSync(join(tmpdir(), 'permifyjs-prisma-'));
