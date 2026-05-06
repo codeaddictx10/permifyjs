@@ -27,6 +27,8 @@ const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 const repoRoot = resolve(dirname(__filename), '../../../..');
 const exampleAppDir = join(repoRoot, 'examples', 'express-app');
 const mongooseWorkspaceDir = join(repoRoot, 'packages', 'mongoose');
+const runPrismaCliIntegration =
+  process.env.PERMIFYJS_RUN_PRISMA_CLI_INTEGRATION === '1' && DatabaseSync !== null;
 const runMongoCliIntegration = process.env.PERMIFYJS_RUN_MONGOOSE_INTEGRATION === '1';
 const mongooseWorkspaceRequire = createRequire(
   join(mongooseWorkspaceDir, 'package.json')
@@ -208,7 +210,7 @@ describe('runRoleCommand() with a real Prisma DB', () => {
     }
   });
 
-  it.skipIf(!DatabaseSync)(
+  it.skipIf(!runPrismaCliIntegration)(
     'creates, lists, assigns, and removes roles against the project database',
     async () => {
     const cwd = createPrismaProject();
@@ -266,7 +268,7 @@ describe('runRoleCommand() with a real Prisma DB', () => {
     }
   );
 
-  it.skipIf(!DatabaseSync)(
+  it.skipIf(!runPrismaCliIntegration)(
     'loads DATABASE_URL from the project .env when the shell env is unset',
     async () => {
     const cwd = createPrismaProject();
@@ -284,7 +286,7 @@ describe('runRoleCommand() with a real Prisma DB', () => {
     }
   );
 
-  it.skipIf(!DatabaseSync)(
+  it.skipIf(!runPrismaCliIntegration)(
     'creates, lists, and assigns permissions against the project database',
     async () => {
     const cwd = createPrismaProject();
@@ -324,7 +326,7 @@ describe('runRoleCommand() with a real Prisma DB', () => {
     }
   );
 
-  it.skipIf(!DatabaseSync)(
+  it.skipIf(!runPrismaCliIntegration)(
     'reads user roles and permissions from the project database',
     async () => {
     const cwd = createPrismaProject();
