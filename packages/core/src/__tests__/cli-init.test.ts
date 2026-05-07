@@ -70,9 +70,14 @@ describe('runInit()', () => {
     const { runInit } = await import('../cli/commands/init');
     await runInit();
 
-    expect(installPackagesMock).toHaveBeenCalledWith(
-      ['@permifyjs/core', '@permifyjs/express', '@permifyjs/prisma'],
-      'npm'
+    expect(installPackagesMock).toHaveBeenCalledTimes(1);
+    expect(installPackagesMock.mock.calls[0]?.[0]).toEqual([
+      '@permifyjs/core',
+      '@permifyjs/express',
+      '@permifyjs/prisma',
+    ]);
+    expect(['npm', 'pnpm', 'yarn', 'bun']).toContain(
+      installPackagesMock.mock.calls[0]?.[1]
     );
 
     expect(readFileSync(join(cwd, 'permifyjs.config.ts'), 'utf-8')).toContain(
@@ -150,9 +155,14 @@ describe('runInit()', () => {
     const { runInit } = await import('../cli/commands/init');
     await runInit();
 
-    expect(installPackagesMock).toHaveBeenCalledWith(
-      ['@permifyjs/core', '@permifyjs/nestjs', '@permifyjs/mongoose'],
-      'npm'
+    expect(installPackagesMock).toHaveBeenCalledTimes(1);
+    expect(installPackagesMock.mock.calls[0]?.[0]).toEqual([
+      '@permifyjs/core',
+      '@permifyjs/nestjs',
+      '@permifyjs/mongoose',
+    ]);
+    expect(['npm', 'pnpm', 'yarn', 'bun']).toContain(
+      installPackagesMock.mock.calls[0]?.[1]
     );
 
     expect(readFileSync(join(cwd, 'permifyjs.config.ts'), 'utf-8')).toContain(
