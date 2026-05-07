@@ -188,6 +188,15 @@ See [docs/quick-start.md](/Users/CodeAddictx/Desktop/dev/packages/permifyjs/docs
 
 Use the generated schema fragment from the CLI or the schema in [packages/prisma/src/schema.prisma](/Users/CodeAddictx/Desktop/dev/packages/permifyjs/packages/prisma/src/schema.prisma).
 
+`permifyjs init` now writes `scopeMode` into `permifyjs.config.ts` and generates a mode-specific schema fragment:
+
+- `global`: no `tenantId` or `teamId`
+- `tenant`: only `tenantId`
+- `team`: only `teamId`
+- `tenant-team`: both fields
+
+The package source schema is the full `tenant-team` variant for direct adapter consumers who do not pass a `scopeMode`.
+
 ## Mongoose Adapter
 
 `@permifyjs/mongoose` provides:
@@ -196,7 +205,7 @@ Use the generated schema fragment from the CLI or the schema in [packages/prisma
 - `createMongooseResolver()`
 - `createMongooseWriteResolver()`
 
-Call `registerPermifyModels()` before your application starts using the resolver layer so the required collections and models are registered.
+Call `registerPermifyModels({ scopeMode })` before your application starts using the resolver layer so the required collections and models are registered with the expected schema shape.
 
 ## CLI
 
@@ -218,7 +227,7 @@ pnpm exec permifyjs init
 pnpm exec permifyjs migrate
 ```
 
-The generated Prisma files now use the Prisma client import path you confirm during `init`, instead of assuming one fixed project structure.
+The generated Prisma files now use the Prisma client import path you confirm during `init`, instead of assuming one fixed project structure. `init` also asks which scope model your app uses and stores it as `scopeMode`.
 
 ## Testing
 

@@ -54,6 +54,8 @@ export function createProgram(): Command {
     .requiredOption('--model-id <id>', 'Model ID')
     .option('--model-type <type>', 'Model type', 'User')
     .requiredOption('--role <role>', 'Role name')
+    .option('--tenant-id <tenantId>', 'Tenant ID for scoped assignments')
+    .option('--team-id <teamId>', 'Team ID for scoped assignments')
     .action((opts) => runRoleCommand('assign', opts));
 
   program
@@ -62,6 +64,8 @@ export function createProgram(): Command {
     .requiredOption('--model-id <id>', 'Model ID')
     .option('--model-type <type>', 'Model type', 'User')
     .requiredOption('--role <role>', 'Role name')
+    .option('--tenant-id <tenantId>', 'Tenant ID for scoped assignments')
+    .option('--team-id <teamId>', 'Team ID for scoped assignments')
     .action((opts) => runRoleCommand('remove', opts));
 
   program
@@ -79,6 +83,8 @@ export function createProgram(): Command {
     .description('Assign a permission to a role')
     .requiredOption('--role <role>', 'Role name')
     .requiredOption('--permission <permission>', 'Permission name')
+    .option('--tenant-id <tenantId>', 'Tenant ID for scoped assignments')
+    .option('--team-id <teamId>', 'Team ID for scoped assignments')
     .action((opts) => runPermissionCommand('assign', opts));
 
   program
@@ -86,6 +92,8 @@ export function createProgram(): Command {
     .description('List roles for a model')
     .requiredOption('--model-id <id>', 'Model ID')
     .option('--model-type <type>', 'Model type', 'User')
+    .option('--tenant-id <tenantId>', 'Tenant ID for scoped lookups')
+    .option('--team-id <teamId>', 'Team ID for scoped lookups')
     .action((opts) => runUserCommand('roles', opts));
 
   program
@@ -93,6 +101,8 @@ export function createProgram(): Command {
     .description('List permissions for a model')
     .requiredOption('--model-id <id>', 'Model ID')
     .option('--model-type <type>', 'Model type', 'User')
+    .option('--tenant-id <tenantId>', 'Tenant ID for scoped lookups')
+    .option('--team-id <teamId>', 'Team ID for scoped lookups')
     .action((opts) => runUserCommand('permissions', opts));
 
   return program;

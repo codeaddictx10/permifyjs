@@ -7,11 +7,19 @@ export async function generateFile(
   outputPath: string,
   data: Record<string, unknown>
 ): Promise<void> {
-  const templateContent = await fs.readFile(templatePath, 'utf-8');
-  const template = Handlebars.compile(templateContent);
-  const output = template(data);
+  const output = await renderTemplate(templatePath, data);
   await fs.ensureDir(join(outputPath, '..'));
   await fs.writeFile(outputPath, output, 'utf-8');
+}
+
+export async function renderTemplate(
+  templatePath: string,
+  data: Record<string, unknown>
+): Promise<string> {
+  const templateContent = await fs.readFile(templatePath, 'utf-8');
+  const template = Handlebars.compile(templateContent);
+  console.log(data, 'template data')
+  return template(data);
 }
 
 export async function appendToFile(

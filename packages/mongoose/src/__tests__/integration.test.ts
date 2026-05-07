@@ -5,6 +5,8 @@ import { registerPermifyModels } from '../models';
 import { createMongooseResolver } from '../resolver';
 import { createMongooseWriteResolver } from '../writeResolver';
 
+const GLOBAL_SCOPE = '__permify_global__';
+
 // Opt-in because mongodb-memory-server needs to bind a local port, which is blocked in some sandboxed runs.
 const runMongoIntegration = process.env.PERMIFYJS_RUN_MONGOOSE_INTEGRATION === '1';
 
@@ -48,6 +50,7 @@ describe('@permifyjs/mongoose integration', () => {
   it.skipIf(!runMongoIntegration)(
     'reads and writes roles and permissions against a real mongodb instance',
     async () => {
+      const scopedContext = { tenantId: 'acme', teamId: 'design' };
       const [
         adminRole,
         editorRole,
@@ -84,24 +87,41 @@ describe('@permifyjs/mongoose integration', () => {
         { id: 'team-1', modelType: 'Team' },
         'team.manage'
       );
+      await writeResolver.assignRole({ id: 'user-1' }, 'editor', scopedContext);
+      await writeResolver.givePermissionTo({ id: 'user-1' }, 'team.manage', scopedContext);
+      await writeResolver.assignPermissionToRole('editor', 'post.archive', scopedContext);
+      await writeResolver.assignPermissionToRole('editor', 'post.archive', scopedContext);
 
       expect(await resolver.getRoles({ id: 'user-1' })).toEqual(['admin']);
+      expect(await resolver.getRoles({ id: 'user-1' }, scopedContext)).toEqual([
+        'editor',
+      ]);
       expect(await resolver.getDirectPermissions({ id: 'user-1' })).toEqual([
         'post.publish',
+      ]);
+      expect(await resolver.getDirectPermissions({ id: 'user-1' }, scopedContext)).toEqual([
+        'team.manage',
       ]);
       expect(await resolver.getPermissionsThroughRoles({ id: 'user-1' })).toEqual(
         expect.arrayContaining(['post.create', 'post.edit'])
       );
+      expect(await resolver.getPermissionsThroughRoles({ id: 'user-1' }, scopedContext)).toEqual([
+        'post.archive',
+      ]);
       expect(
         await models.ModelHasRole.countDocuments({
           modelId: 'user-1',
           modelType: 'User',
+          tenantId: GLOBAL_SCOPE,
+          teamId: GLOBAL_SCOPE,
         })
       ).toBe(1);
       expect(
         await models.ModelHasPermission.countDocuments({
           modelId: 'user-1',
           modelType: 'User',
+          tenantId: GLOBAL_SCOPE,
+          teamId: GLOBAL_SCOPE,
         })
       ).toBe(1);
       expect(await resolver.getRoles({ id: 'team-1', modelType: 'Team' })).toEqual([
@@ -118,20 +138,38 @@ describe('@permifyjs/mongoose integration', () => {
       await writeResolver.assignPermissionToRole('editor', 'post.archive');
 
       expect(await resolver.getRoles({ id: 'user-1' })).toEqual(['editor']);
+      expect(await resolver.getRoles({ id: 'user-1' }, scopedContext)).toEqual([
+        'editor',
+      ]);
       expect(await resolver.getDirectPermissions({ id: 'user-1' })).toEqual([
         'post.create',
+      ]);
+      expect(await resolver.getDirectPermissions({ id: 'user-1' }, scopedContext)).toEqual([
+        'team.manage',
       ]);
       expect(await resolver.getPermissionsThroughRoles({ id: 'user-1' })).toEqual(
         expect.arrayContaining(['post.publish', 'post.archive'])
       );
+      expect(await resolver.getPermissionsThroughRoles({ id: 'user-1' }, scopedContext)).toEqual([
+        'post.archive',
+      ]);
       expect(await resolver.getRolePermissions('editor')).toEqual(
         expect.arrayContaining(['post.publish', 'post.archive'])
       );
+      expect(await resolver.getRolePermissions('editor', scopedContext)).toEqual([
+        'post.archive',
+      ]);
 
       await writeResolver.removeRole({ id: 'user-1' }, 'editor');
       await writeResolver.revokePermissionTo({ id: 'user-1' }, 'post.create');
       expect(await resolver.getRoles({ id: 'user-1' })).toEqual([]);
       expect(await resolver.getDirectPermissions({ id: 'user-1' })).toEqual([]);
+      expect(await resolver.getRoles({ id: 'user-1' }, scopedContext)).toEqual([
+        'editor',
+      ]);
+      expect(await resolver.getDirectPermissions({ id: 'user-1' }, scopedContext)).toEqual([
+        'team.manage',
+      ]);
 
       await writeResolver.assignRole({ id: 'user-1' }, 'admin');
       await writeResolver.givePermissionTo({ id: 'user-1' }, 'post.publish');

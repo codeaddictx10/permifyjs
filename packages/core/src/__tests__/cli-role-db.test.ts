@@ -55,6 +55,18 @@ function createPrismaProject(): string {
     })
   );
   writeFileSync(join(cwd, '.env'), 'DATABASE_URL="file:./prisma/dev.db"\n');
+  writeFileSync(
+    join(cwd, 'permifyjs.config.ts'),
+    `import { defineConfig } from '@permifyjs/core';
+
+export default defineConfig({
+  adapter: 'prisma',
+  framework: 'express',
+  models: ['User'],
+  scopeMode: 'global',
+});
+`
+  );
 
   cpSync(join(exampleAppDir, 'src', 'db.ts'), join(cwd, 'src', 'db.ts'));
   cpSync(
@@ -149,11 +161,26 @@ function createMongooseProject(mongoUri: string): string {
   );
   writeFileSync(join(cwd, '.env'), `MONGODB_URI="${mongoUri}"\n`);
   writeFileSync(
+    join(cwd, 'permifyjs.config.ts'),
+    `import { defineConfig } from '@permifyjs/core';
+
+export default defineConfig({
+  adapter: 'mongoose',
+  framework: 'express',
+  models: ['User'],
+  scopeMode: 'global',
+});
+`
+  );
+  writeFileSync(
     join(cwd, 'src', 'permifyjs', 'writeResolver.ts'),
     `import type { PermissionWriteResolver } from '@permifyjs/core';
+import config from '../../permifyjs.config';
 import { createMongooseWriteResolver } from '@permifyjs/mongoose';
 
-export const writeResolver: PermissionWriteResolver = createMongooseWriteResolver();
+export const writeResolver: PermissionWriteResolver = createMongooseWriteResolver({
+  scopeMode: config.scopeMode,
+});
 `
   );
 

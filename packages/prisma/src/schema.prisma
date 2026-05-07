@@ -27,32 +27,38 @@ model PermifyPermission {
 model PermifyRoleHasPermission {
   roleId       String
   permissionId String
+  tenantId     String   @default("__permify_global__")
+  teamId       String   @default("__permify_global__")
 
   role       PermifyRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission PermifyPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@id([roleId, permissionId])
+  @@id([roleId, permissionId, tenantId, teamId])
   @@map("role_has_permissions")
 }
 
 model PermifyModelHasRole {
   modelId   String
   modelType String
+  tenantId  String   @default("__permify_global__")
+  teamId    String   @default("__permify_global__")
   roleId    String
 
   role PermifyRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@id([modelId, modelType, roleId])
+  @@id([modelId, modelType, tenantId, teamId, roleId])
   @@map("model_has_roles")
 }
 
 model PermifyModelHasPermission {
   modelId      String
   modelType    String
+  tenantId     String   @default("__permify_global__")
+  teamId       String   @default("__permify_global__")
   permissionId String
 
   permission PermifyPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@id([modelId, modelType, permissionId])
+  @@id([modelId, modelType, tenantId, teamId, permissionId])
   @@map("model_has_permissions")
 }

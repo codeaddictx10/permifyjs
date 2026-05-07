@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
-import { findProjectPermifyModule, loadProjectModule, loadProjectPackage, resolveProjectRelativeModule } from './project';
+import { findProjectPermifyModule, loadProjectConfig, loadProjectModule, loadProjectPackage, resolveProjectRelativeModule } from './project';
+import type { AuthContext, ScopeMode } from '../../types';
 
 type PrismaClientLike = {
   permifyRole?: {
@@ -21,25 +22,33 @@ type AuthModelLike = {
 };
 
 type PrismaResolverFactory = (
-  prisma: PrismaClientLike
+  prisma: PrismaClientLike,
+  options?: { scopeMode?: ScopeMode }
 ) => {
-  getRoles(model: AuthModelLike): Promise<string[]>;
-  getDirectPermissions(model: AuthModelLike): Promise<string[]>;
-  getPermissionsThroughRoles(model: AuthModelLike): Promise<string[]>;
+  getRoles(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
+  getDirectPermissions(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
+  getPermissionsThroughRoles(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
 };
 
 type PrismaWriteResolverFactory = (
-  prisma: PrismaClientLike
+  prisma: PrismaClientLike,
+  options?: { scopeMode?: ScopeMode }
 ) => {
   assignRole(
     model: AuthModelLike,
-    role: string
+    role: string,
+    context?: AuthContext
   ): Promise<void>;
   removeRole(
     model: AuthModelLike,
-    role: string
+    role: string,
+    context?: AuthContext
   ): Promise<void>;
-  assignPermissionToRole(role: string, permission: string): Promise<void>;
+  assignPermissionToRole(
+    role: string,
+    permission: string,
+    context?: AuthContext
+  ): Promise<void>;
 };
 
 function findImportedBinding(
@@ -85,6 +94,7 @@ export async function loadPrismaRuntime(
   prisma: PrismaClientLike;
   createPrismaResolver: PrismaResolverFactory;
   createPrismaWriteResolver: PrismaWriteResolverFactory;
+  scopeMode?: ScopeMode;
 } | null> {
   const writeResolverPath = findProjectPermifyModule('writeResolver', cwd);
   if (!writeResolverPath) return null;
@@ -95,7 +105,7 @@ export async function loadPrismaRuntime(
   }
 
   const argumentMatch = writeResolverSource.match(
-    /createPrismaWriteResolver\(\s*([A-Za-z_$][\w$]*)\s*\)/
+    /createPrismaWriteResolver\(\s*([A-Za-z_$][\w$]*)\b/
   );
   if (!argumentMatch) return null;
 
@@ -128,6 +138,7 @@ export async function loadPrismaRuntime(
     createPrismaResolver?: PrismaResolverFactory;
     createPrismaWriteResolver?: PrismaWriteResolverFactory;
   }>('@permifyjs/prisma', cwd);
+  const config = loadProjectConfig<{ scopeMode?: ScopeMode }>(cwd);
 
   if (typeof prismaPackage.createPrismaResolver !== 'function') {
     throw new Error(
@@ -145,5 +156,6 @@ export async function loadPrismaRuntime(
     prisma: prisma as PrismaClientLike,
     createPrismaResolver: prismaPackage.createPrismaResolver,
     createPrismaWriteResolver: prismaPackage.createPrismaWriteResolver,
+    scopeMode: config?.scopeMode,
   };
 }

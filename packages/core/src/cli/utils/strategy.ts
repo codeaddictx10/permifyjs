@@ -1,6 +1,8 @@
 import { detectInstalledAdapter } from './detect';
 import { loadMongooseRuntime } from './mongoose';
 import { loadPrismaRuntime } from './prisma';
+import type { AuthContext, ScopeMode } from '../../types';
+import { normalizeScopeMode } from '../../scope';
 
 type AuthModelLike = {
   id: string;
@@ -8,15 +10,20 @@ type AuthModelLike = {
 };
 
 export interface CliAdapterStrategy {
-  createRole(name: string): Promise<'created' | 'exists'>;
+  scopeMode: ScopeMode;
+  createRole(name: string,): Promise<'created' | 'exists'>;
   listRoles(): Promise<string[]>;
-  assignRole(model: AuthModelLike, role: string): Promise<void>;
-  removeRole(model: AuthModelLike, role: string): Promise<void>;
+  assignRole(model: AuthModelLike, role: string, context?: AuthContext): Promise<void>;
+  removeRole(model: AuthModelLike, role: string, context?: AuthContext): Promise<void>;
   createPermission(name: string): Promise<'created' | 'exists'>;
   listPermissions(): Promise<string[]>;
-  assignPermissionToRole(role: string, permission: string): Promise<void>;
-  getRoles(model: AuthModelLike): Promise<string[]>;
-  getPermissions(model: AuthModelLike): Promise<string[]>;
+  assignPermissionToRole(
+    role: string,
+    permission: string,
+    context?: AuthContext
+  ): Promise<void>;
+  getRoles(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
+  getPermissions(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
   dispose(): Promise<void>;
 }
 
@@ -45,10 +52,12 @@ export async function resolveCliAdapterStrategy(
 }
 
 function createPrismaStrategy(runtime: NonNullable<Awaited<ReturnType<typeof loadPrismaRuntime>>>): CliAdapterStrategy {
-  const resolver = runtime.createPrismaResolver(runtime.prisma);
-  const writeResolver = runtime.createPrismaWriteResolver(runtime.prisma);
+  const scopeMode = normalizeScopeMode(runtime.scopeMode);
+  const resolver = runtime.createPrismaResolver(runtime.prisma, { scopeMode });
+  const writeResolver = runtime.createPrismaWriteResolver(runtime.prisma, { scopeMode });
 
   return {
+    scopeMode,
     async createRole(name: string) {
       const existing = await runtime.prisma.permifyRole?.findUnique({
         where: { name },
@@ -72,12 +81,12 @@ function createPrismaStrategy(runtime: NonNullable<Awaited<ReturnType<typeof loa
       return roles.map((role) => role.name);
     },
 
-    async assignRole(model: AuthModelLike, role: string) {
-      await writeResolver.assignRole(model, role);
+    async assignRole(model: AuthModelLike, role: string, context?: AuthContext) {
+      await writeResolver.assignRole(model, role, context);
     },
 
-    async removeRole(model: AuthModelLike, role: string) {
-      await writeResolver.removeRole(model, role);
+    async removeRole(model: AuthModelLike, role: string, context?: AuthContext) {
+      await writeResolver.removeRole(model, role, context);
     },
 
     async createPermission(name: string) {
@@ -103,18 +112,22 @@ function createPrismaStrategy(runtime: NonNullable<Awaited<ReturnType<typeof loa
       return permissions.map((permission) => permission.name);
     },
 
-    async assignPermissionToRole(role: string, permission: string) {
-      await writeResolver.assignPermissionToRole(role, permission);
+    async assignPermissionToRole(
+      role: string,
+      permission: string,
+      context?: AuthContext
+    ) {
+      await writeResolver.assignPermissionToRole(role, permission, context);
     },
 
-    async getRoles(model: AuthModelLike) {
-      return resolver.getRoles(model);
+    async getRoles(model: AuthModelLike, context?: AuthContext) {
+      return resolver.getRoles(model, context);
     },
 
-    async getPermissions(model: AuthModelLike) {
+    async getPermissions(model: AuthModelLike, context?: AuthContext) {
       const [directPermissions, permissionsThroughRoles] = await Promise.all([
-        resolver.getDirectPermissions(model),
-        resolver.getPermissionsThroughRoles(model),
+        resolver.getDirectPermissions(model, context),
+        resolver.getPermissionsThroughRoles(model, context),
       ]);
 
       return [...new Set([...directPermissions, ...permissionsThroughRoles])].sort();
@@ -127,18 +140,22 @@ function createPrismaStrategy(runtime: NonNullable<Awaited<ReturnType<typeof loa
 }
 
 function createMongooseStrategy(runtime: NonNullable<Awaited<ReturnType<typeof loadMongooseRuntime>>>): CliAdapterStrategy {
+  const scopeMode = normalizeScopeMode(runtime.scopeMode);
   const resolver = runtime.createMongooseResolver({
     connection: runtime.connection,
     collectionNames: runtime.collectionNames,
+    scopeMode,
   });
   const writeResolver = runtime.createMongooseWriteResolver({
     connection: runtime.connection,
     collectionNames: runtime.collectionNames,
+    scopeMode,
   });
   const Role = runtime.connection.model('PermifyRole');
   const Permission = runtime.connection.model('PermifyPermission');
 
   return {
+    scopeMode,
     async createRole(name: string) {
       const existing = await Role.findOne({ name }).lean();
       if (existing) return 'exists';
@@ -156,12 +173,12 @@ function createMongooseStrategy(runtime: NonNullable<Awaited<ReturnType<typeof l
       return roles.map((role: { name: string }) => role.name);
     },
 
-    async assignRole(model: AuthModelLike, role: string) {
-      await writeResolver.assignRole(model, role);
+    async assignRole(model: AuthModelLike, role: string, context?: AuthContext) {
+      await writeResolver.assignRole(model, role, context);
     },
 
-    async removeRole(model: AuthModelLike, role: string) {
-      await writeResolver.removeRole(model, role);
+    async removeRole(model: AuthModelLike, role: string, context?: AuthContext) {
+      await writeResolver.removeRole(model, role, context);
     },
 
     async createPermission(name: string) {
@@ -181,18 +198,22 @@ function createMongooseStrategy(runtime: NonNullable<Awaited<ReturnType<typeof l
       return permissions.map((permission: { name: string }) => permission.name);
     },
 
-    async assignPermissionToRole(role: string, permission: string) {
-      await writeResolver.assignPermissionToRole(role, permission);
+    async assignPermissionToRole(
+      role: string,
+      permission: string,
+      context?: AuthContext
+    ) {
+      await writeResolver.assignPermissionToRole(role, permission, context);
     },
 
-    async getRoles(model: AuthModelLike) {
-      return resolver.getRoles(model);
+    async getRoles(model: AuthModelLike, context?: AuthContext) {
+      return resolver.getRoles(model, context);
     },
 
-    async getPermissions(model: AuthModelLike) {
+    async getPermissions(model: AuthModelLike, context?: AuthContext) {
       const [directPermissions, permissionsThroughRoles] = await Promise.all([
-        resolver.getDirectPermissions(model),
-        resolver.getPermissionsThroughRoles(model),
+        resolver.getDirectPermissions(model, context),
+        resolver.getPermissionsThroughRoles(model, context),
       ]);
 
       return [...new Set([...directPermissions, ...permissionsThroughRoles])].sort();

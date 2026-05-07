@@ -1,5 +1,8 @@
 import type { PermissionWriteResolver } from '@permifyjs/core';
+import config from '{{configImportPath}}';
 import { createPrismaWriteResolver } from '@permifyjs/prisma';
 import { prisma } from '{{prismaClientImportPath}}';
 
-export const writeResolver: PermissionWriteResolver = createPrismaWriteResolver(prisma);
+export const writeResolver: PermissionWriteResolver = createPrismaWriteResolver(prisma, {
+  scopeMode: config.scopeMode,
+});

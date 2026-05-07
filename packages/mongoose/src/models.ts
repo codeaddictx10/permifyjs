@@ -4,6 +4,7 @@ import mongoose, {
   type Model,
   type Mongoose,
 } from 'mongoose';
+import { GLOBAL_SCOPE, getScopedIndexShape, type ScopeMode } from './scope';
 
 export interface PermifyCollectionNames {
   roles?: string;
@@ -17,6 +18,7 @@ export interface RegisterPermifyModelsOptions {
   mongoose?: Mongoose;
   connection?: Connection;
   collectionNames?: PermifyCollectionNames;
+  scopeMode?: ScopeMode;
 }
 
 const DEFAULT_MODEL_NAMES = {
@@ -37,6 +39,8 @@ const DEFAULT_COLLECTIONS = {
 
 export interface PermifyRoleDocument {
   name: string;
+  tenantId?: string;
+  teamId?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -50,17 +54,23 @@ export interface PermifyPermissionDocument {
 export interface PermifyRoleHasPermissionDocument {
   roleId: unknown;
   permissionId: unknown;
+  tenantId?: string;
+  teamId?: string;
 }
 
 export interface PermifyModelHasRoleDocument {
   modelId: string;
   modelType: string;
+  tenantId?: string;
+  teamId?: string;
   roleId: unknown;
 }
 
 export interface PermifyModelHasPermissionDocument {
   modelId: string;
   modelType: string;
+  tenantId?: string;
+  teamId?: string;
   permissionId: unknown;
 }
 
@@ -83,10 +93,64 @@ function getCollectionName(
   return options?.collectionNames?.[key] ?? DEFAULT_COLLECTIONS[key];
 }
 
-function createRoleSchema(collectionName: string): Schema<PermifyRoleDocument> {
+const REGISTRY_SCOPE_MODE = Symbol.for('permifyjs.scopeMode');
+
+function getEnabledScopeFields(
+  scopeMode?: ScopeMode
+): Array<'tenantId' | 'teamId'> {
+  switch (scopeMode ?? 'tenant-team') {
+    case 'global':
+      return [];
+    case 'tenant':
+      return ['tenantId'];
+    case 'team':
+      return ['teamId'];
+    default:
+      return ['tenantId', 'teamId'];
+  }
+}
+
+function getResolvedScopeMode(options?: RegisterPermifyModelsOptions): ScopeMode {
+  return options?.scopeMode ?? 'tenant-team';
+}
+
+function getScopeSchemaFields(scopeMode?: ScopeMode) {
+  const fields: Record<string, any> = {};
+
+  for (const field of getEnabledScopeFields(scopeMode)) {
+    fields[field] = {
+      type: String,
+      required: true,
+      default: GLOBAL_SCOPE,
+      index: true,
+    };
+  }
+
+  return fields;
+}
+
+function assertRegistryScopeMode(
+  registry: ReturnType<typeof getRegistry>,
+  scopeMode: ScopeMode
+): void {
+  const existingScopeMode = (registry as any)[REGISTRY_SCOPE_MODE] as
+    | ScopeMode
+    | undefined;
+
+  if (existingScopeMode && existingScopeMode !== scopeMode) {
+    throw new Error(
+      `[permifyjs] registerPermifyModels() already initialized this Mongoose registry with scopeMode "${existingScopeMode}". Received "${scopeMode}".`
+    );
+  }
+
+  (registry as any)[REGISTRY_SCOPE_MODE] = scopeMode;
+}
+
+function createRoleSchema(collectionName: string, scopeMode?: ScopeMode): Schema<PermifyRoleDocument> {
   return new Schema(
     {
       name: { type: String, required: true, unique: true, index: true },
+      ...getScopeSchemaFields(scopeMode),
     },
     {
       timestamps: true,
@@ -110,7 +174,8 @@ function createPermissionSchema(
 }
 
 function createRoleHasPermissionSchema(
-  collectionName: string
+  collectionName: string,
+  scopeMode?: ScopeMode
 ): Schema<PermifyRoleHasPermissionDocument> {
   const schema = new Schema(
     {
@@ -126,6 +191,7 @@ function createRoleHasPermissionSchema(
         required: true,
         index: true,
       },
+      ...getScopeSchemaFields(scopeMode),
     },
     {
       timestamps: false,
@@ -133,17 +199,22 @@ function createRoleHasPermissionSchema(
     }
   );
 
-  schema.index({ roleId: 1, permissionId: 1 }, { unique: true });
+  schema.index(
+    getScopedIndexShape({ roleId: 1, permissionId: 1 }, {}, scopeMode),
+    { unique: true }
+  );
   return schema;
 }
 
 function createModelHasRoleSchema(
-  collectionName: string
+  collectionName: string,
+  scopeMode?: ScopeMode
 ): Schema<PermifyModelHasRoleDocument> {
   const schema = new Schema(
     {
       modelId: { type: String, required: true, index: true },
       modelType: { type: String, required: true, index: true },
+      ...getScopeSchemaFields(scopeMode),
       roleId: {
         type: Schema.Types.ObjectId,
         ref: DEFAULT_MODEL_NAMES.role,
@@ -157,17 +228,22 @@ function createModelHasRoleSchema(
     }
   );
 
-  schema.index({ modelId: 1, modelType: 1, roleId: 1 }, { unique: true });
+  schema.index(
+    getScopedIndexShape({ modelId: 1, modelType: 1 }, { roleId: 1 }, scopeMode),
+    { unique: true }
+  );
   return schema;
 }
 
 function createModelHasPermissionSchema(
-  collectionName: string
+  collectionName: string,
+  scopeMode?: ScopeMode
 ): Schema<PermifyModelHasPermissionDocument> {
   const schema = new Schema(
     {
       modelId: { type: String, required: true, index: true },
       modelType: { type: String, required: true, index: true },
+      ...getScopeSchemaFields(scopeMode),
       permissionId: {
         type: Schema.Types.ObjectId,
         ref: DEFAULT_MODEL_NAMES.permission,
@@ -181,7 +257,14 @@ function createModelHasPermissionSchema(
     }
   );
 
-  schema.index({ modelId: 1, modelType: 1, permissionId: 1 }, { unique: true });
+  schema.index(
+    getScopedIndexShape(
+      { modelId: 1, modelType: 1 },
+      { permissionId: 1 },
+      scopeMode
+    ),
+    { unique: true }
+  );
   return schema;
 }
 
@@ -189,12 +272,14 @@ export function registerPermifyModels(
   options: RegisterPermifyModelsOptions = {}
 ): PermifyModels {
   const registry = getRegistry(options);
+  const scopeMode = getResolvedScopeMode(options);
+  assertRegistryScopeMode(registry, scopeMode);
 
   const Role =
     registry.models[DEFAULT_MODEL_NAMES.role] ??
     registry.model(
       DEFAULT_MODEL_NAMES.role,
-      createRoleSchema(getCollectionName('roles', options))
+      createRoleSchema(getCollectionName('roles', options), scopeMode)
     );
 
   const Permission =
@@ -209,7 +294,8 @@ export function registerPermifyModels(
     registry.model(
       DEFAULT_MODEL_NAMES.roleHasPermission,
       createRoleHasPermissionSchema(
-        getCollectionName('roleHasPermissions', options)
+        getCollectionName('roleHasPermissions', options),
+        scopeMode
       )
     );
 
@@ -217,7 +303,7 @@ export function registerPermifyModels(
     registry.models[DEFAULT_MODEL_NAMES.modelHasRole] ??
     registry.model(
       DEFAULT_MODEL_NAMES.modelHasRole,
-      createModelHasRoleSchema(getCollectionName('modelHasRoles', options))
+      createModelHasRoleSchema(getCollectionName('modelHasRoles', options), scopeMode)
     );
 
   const ModelHasPermission =
@@ -225,7 +311,8 @@ export function registerPermifyModels(
     registry.model(
       DEFAULT_MODEL_NAMES.modelHasPermission,
       createModelHasPermissionSchema(
-        getCollectionName('modelHasPermissions', options)
+        getCollectionName('modelHasPermissions', options),
+        scopeMode
       )
     );
 

@@ -4,6 +4,12 @@
 model PermifyRole {
   id          String   @id @default(cuid())
   name        String   @unique
+  {{#if hasTenantScope}}
+  tenantId     String   @default("__permify_global__")
+  {{/if}}
+  {{#if hasTeamScope}}
+  teamId       String   @default("__permify_global__")
+  {{/if}}
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -28,32 +34,50 @@ model PermifyPermission {
 model PermifyRoleHasPermission {
   roleId       String
   permissionId String
+  {{#if hasTenantScope}}
+  tenantId     String   @default("__permify_global__")
+  {{/if}}
+  {{#if hasTeamScope}}
+  teamId       String   @default("__permify_global__")
+  {{/if}}
 
   role       PermifyRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission PermifyPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@id([roleId, permissionId])
+  @@id([roleId, permissionId{{#if hasTenantScope}}, tenantId{{/if}}{{#if hasTeamScope}}, teamId{{/if}}])
   @@map("role_has_permissions")
 }
 
 model PermifyModelHasRole {
   modelId   String
   modelType String
+  {{#if hasTenantScope}}
+  tenantId  String   @default("__permify_global__")
+  {{/if}}
+  {{#if hasTeamScope}}
+  teamId    String   @default("__permify_global__")
+  {{/if}}
   roleId    String
 
   role PermifyRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@id([modelId, modelType, roleId])
+  @@id([modelId, modelType{{#if hasTenantScope}}, tenantId{{/if}}{{#if hasTeamScope}}, teamId{{/if}}, roleId])
   @@map("model_has_roles")
 }
 
 model PermifyModelHasPermission {
   modelId      String
   modelType    String
+  {{#if hasTenantScope}}
+  tenantId     String   @default("__permify_global__")
+  {{/if}}
+  {{#if hasTeamScope}}
+  teamId       String   @default("__permify_global__")
+  {{/if}}
   permissionId String
 
   permission PermifyPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@id([modelId, modelType, permissionId])
+  @@id([modelId, modelType{{#if hasTenantScope}}, tenantId{{/if}}{{#if hasTeamScope}}, teamId{{/if}}, permissionId])
   @@map("model_has_permissions")
 }

@@ -13,6 +13,8 @@ export interface AuthContext {
   [key: string]: unknown;
 }
 
+export type ScopeMode = 'global' | 'tenant' | 'team' | 'tenant-team';
+
 export interface PermissionResolver {
   getRoles(model: AuthModel, context?: AuthContext): Promise<string[]>;
   getDirectPermissions(model: AuthModel, context?: AuthContext): Promise<string[]>;
@@ -90,6 +92,7 @@ export interface PermifyConfig {
   adapter: AdapterType;
   framework: FrameworkType;
   models?: string[];
+  scopeMode?: ScopeMode;
   cache?: CacheOptions;
   tables?: {
     roles?: string;

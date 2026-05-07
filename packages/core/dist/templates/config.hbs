@@ -4,6 +4,7 @@ export default defineConfig({
   adapter: '{{adapter}}',
   framework: '{{framework}}',
   models: [{{#each models}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}],
+  scopeMode: '{{scopeMode}}',
   {{#if enableCache}}
   cache: {
     ttl: 60,

@@ -1,6 +1,8 @@
 import { Mongoose, Connection, Model } from 'mongoose';
 import { PermissionResolver, PermissionWriteResolver } from '@permifyjs/core';
 
+type ScopeMode = 'global' | 'tenant' | 'team' | 'tenant-team';
+
 interface PermifyCollectionNames {
     roles?: string;
     permissions?: string;
@@ -12,6 +14,7 @@ interface RegisterPermifyModelsOptions {
     mongoose?: Mongoose;
     connection?: Connection;
     collectionNames?: PermifyCollectionNames;
+    scopeMode?: ScopeMode;
 }
 interface PermifyRoleDocument {
     name: string;
@@ -26,15 +29,21 @@ interface PermifyPermissionDocument {
 interface PermifyRoleHasPermissionDocument {
     roleId: unknown;
     permissionId: unknown;
+    tenantId?: string;
+    teamId?: string;
 }
 interface PermifyModelHasRoleDocument {
     modelId: string;
     modelType: string;
+    tenantId?: string;
+    teamId?: string;
     roleId: unknown;
 }
 interface PermifyModelHasPermissionDocument {
     modelId: string;
     modelType: string;
+    tenantId?: string;
+    teamId?: string;
     permissionId: unknown;
 }
 interface PermifyModels {

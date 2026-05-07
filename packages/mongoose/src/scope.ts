@@ -1,0 +1,53 @@
+import type { AuthContext } from '@permifyjs/core';
+
+export type ScopeMode = 'global' | 'tenant' | 'team' | 'tenant-team';
+
+export const GLOBAL_SCOPE = '__permify_global__';
+
+type ScopeField = 'tenantId' | 'teamId';
+type ScopeRecord = Partial<Record<ScopeField, string>>;
+
+function getEnabledScopeFields(
+  scopeMode?: ScopeMode
+): Array<'tenantId' | 'teamId'> {
+  switch (scopeMode ?? 'tenant-team') {
+    case 'global':
+      return [];
+    case 'tenant':
+      return ['tenantId'];
+    case 'team':
+      return ['teamId'];
+    default:
+      return ['tenantId', 'teamId'];
+  }
+}
+
+export function normalizeScope(
+  scopeMode: ScopeMode | undefined,
+  context?: AuthContext
+): ScopeRecord {
+  const scope: ScopeRecord = {};
+
+  for (const field of getEnabledScopeFields(scopeMode)) {
+    scope[field] = (context?.[field] as string | undefined) ?? GLOBAL_SCOPE;
+  }
+
+  return scope;
+}
+
+export function getScopedIndexShape(
+  prefix: Record<string, 1>,
+  suffix: Record<string, 1>,
+  scopeMode?: ScopeMode
+): Record<string, 1> {
+  const index: Record<string, 1> = { ...prefix };
+
+  for (const field of getEnabledScopeFields(scopeMode)) {
+    index[field] = 1;
+  }
+
+  return {
+    ...index,
+    ...suffix,
+  };
+}

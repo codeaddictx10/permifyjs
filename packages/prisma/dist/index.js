@@ -25,87 +25,129 @@ __export(index_exports, {
 });
 module.exports = __toCommonJS(index_exports);
 
+// src/scope.ts
+var GLOBAL_SCOPE = "__permify_global__";
+function getEnabledScopeFields(scopeMode) {
+  switch (scopeMode ?? "tenant-team") {
+    case "global":
+      return [];
+    case "tenant":
+      return ["tenantId"];
+    case "team":
+      return ["teamId"];
+    default:
+      return ["tenantId", "teamId"];
+  }
+}
+function normalizeScope(scopeMode, context) {
+  const scope = {};
+  for (const field of getEnabledScopeFields(scopeMode)) {
+    scope[field] = context?.[field] ?? GLOBAL_SCOPE;
+  }
+  return scope;
+}
+function getScopedCompoundKeyName(prefix, suffix, scopeMode) {
+  return [...prefix, ...getEnabledScopeFields(scopeMode), ...suffix].join("_");
+}
+
 // src/resolver.ts
-function createPrismaResolver(prisma) {
+function createPrismaResolver(prisma, options = {}) {
   return {
-    getRoles: async (model, _context) => {
+    getRoles: async (model, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const results = await prisma.permifyModelHasRole.findMany({
         where: {
           modelId: model.id,
-          modelType: model.modelType ?? "User"
+          modelType: model.modelType ?? "User",
+          ...scope
         },
         include: { role: true }
       });
       return results.map((r) => r.role.name);
     },
-    getDirectPermissions: async (model, _context) => {
+    getDirectPermissions: async (model, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const results = await prisma.permifyModelHasPermission.findMany({
         where: {
           modelId: model.id,
-          modelType: model.modelType ?? "User"
+          modelType: model.modelType ?? "User",
+          ...scope
         },
         include: { permission: true }
       });
       return results.map((r) => r.permission.name);
     },
-    getPermissionsThroughRoles: async (model, _context) => {
-      const results = await prisma.permifyModelHasRole.findMany({
+    getPermissionsThroughRoles: async (model, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
+      const roleAssignments = await prisma.permifyModelHasRole.findMany({
         where: {
           modelId: model.id,
-          modelType: model.modelType ?? "User"
-        },
-        include: {
-          role: {
-            include: {
-              permissions: {
-                include: { permission: true }
-              }
-            }
-          }
+          modelType: model.modelType ?? "User",
+          ...scope
         }
       });
-      const permissions = results.flatMap((r) => r.role.permissions).map((p) => p.permission.name);
+      if (roleAssignments.length === 0) return [];
+      const rolePermissions = await prisma.permifyRoleHasPermission.findMany({
+        where: {
+          roleId: { in: roleAssignments.map((assignment) => assignment.roleId) },
+          ...scope
+        },
+        include: { permission: true }
+      });
+      const permissions = rolePermissions.map((link) => link.permission.name);
       return [...new Set(permissions)];
     },
-    getRolePermissions: async (role, _context) => {
-      const result = await prisma.permifyRole.findUnique({
-        where: { name: role },
-        include: {
-          permissions: {
-            include: { permission: true }
-          }
-        }
+    getRolePermissions: async (role, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
+      const roleRecord = await prisma.permifyRole.findUnique({
+        where: { name: role }
       });
-      return result?.permissions.map((p) => p.permission.name) ?? [];
+      if (!roleRecord) return [];
+      const result = await prisma.permifyRoleHasPermission.findMany({
+        where: {
+          roleId: roleRecord.id,
+          ...scope
+        },
+        include: { permission: true }
+      });
+      return result.map((link) => link.permission.name);
     }
   };
 }
 
 // src/writeResolver.ts
-function createPrismaWriteResolver(prisma) {
+function createPrismaWriteResolver(prisma, options = {}) {
   return {
     // ─── Model role assignment ──────────────────────────────────────
-    assignRole: async (model, role, _context) => {
+    assignRole: async (model, role, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const roleRecord = await prisma.permifyRole.findUniqueOrThrow({
         where: { name: role }
       });
       await prisma.permifyModelHasRole.upsert({
         where: {
-          modelId_modelType_roleId: {
+          [getScopedCompoundKeyName(
+            ["modelId", "modelType"],
+            ["roleId"],
+            options.scopeMode
+          )]: {
             modelId: model.id,
             modelType: model.modelType ?? "User",
+            ...scope,
             roleId: roleRecord.id
           }
         },
         create: {
           modelId: model.id,
           modelType: model.modelType ?? "User",
+          ...scope,
           roleId: roleRecord.id
         },
         update: {}
       });
     },
-    removeRole: async (model, role, _context) => {
+    removeRole: async (model, role, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const roleRecord = await prisma.permifyRole.findUnique({
         where: { name: role }
       });
@@ -114,50 +156,62 @@ function createPrismaWriteResolver(prisma) {
         where: {
           modelId: model.id,
           modelType: model.modelType ?? "User",
+          ...scope,
           roleId: roleRecord.id
         }
       });
     },
-    syncRoles: async (model, roles, _context) => {
+    syncRoles: async (model, roles, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const roleRecords = await prisma.permifyRole.findMany({
         where: { name: { in: roles } }
       });
       await prisma.permifyModelHasRole.deleteMany({
         where: {
           modelId: model.id,
-          modelType: model.modelType ?? "User"
+          modelType: model.modelType ?? "User",
+          ...scope
         }
       });
       await prisma.permifyModelHasRole.createMany({
         data: roleRecords.map((r) => ({
           modelId: model.id,
           modelType: model.modelType ?? "User",
+          ...scope,
           roleId: r.id
         }))
       });
     },
     // ─── Model direct permission assignment ─────────────────────────
-    givePermissionTo: async (model, permission, _context) => {
+    givePermissionTo: async (model, permission, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const permRecord = await prisma.permifyPermission.findUniqueOrThrow({
         where: { name: permission }
       });
       await prisma.permifyModelHasPermission.upsert({
         where: {
-          modelId_modelType_permissionId: {
+          [getScopedCompoundKeyName(
+            ["modelId", "modelType"],
+            ["permissionId"],
+            options.scopeMode
+          )]: {
             modelId: model.id,
             modelType: model.modelType ?? "User",
+            ...scope,
             permissionId: permRecord.id
           }
         },
         create: {
           modelId: model.id,
           modelType: model.modelType ?? "User",
+          ...scope,
           permissionId: permRecord.id
         },
         update: {}
       });
     },
-    revokePermissionTo: async (model, permission, _context) => {
+    revokePermissionTo: async (model, permission, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const permRecord = await prisma.permifyPermission.findUnique({
         where: { name: permission }
       });
@@ -166,49 +220,61 @@ function createPrismaWriteResolver(prisma) {
         where: {
           modelId: model.id,
           modelType: model.modelType ?? "User",
+          ...scope,
           permissionId: permRecord.id
         }
       });
     },
-    syncPermissions: async (model, permissions, _context) => {
+    syncPermissions: async (model, permissions, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const permRecords = await prisma.permifyPermission.findMany({
         where: { name: { in: permissions } }
       });
       await prisma.permifyModelHasPermission.deleteMany({
         where: {
           modelId: model.id,
-          modelType: model.modelType ?? "User"
+          modelType: model.modelType ?? "User",
+          ...scope
         }
       });
       await prisma.permifyModelHasPermission.createMany({
         data: permRecords.map((p) => ({
           modelId: model.id,
           modelType: model.modelType ?? "User",
+          ...scope,
           permissionId: p.id
         }))
       });
     },
     // ─── Role permission assignment ─────────────────────────────────
-    assignPermissionToRole: async (role, permission, _context) => {
+    assignPermissionToRole: async (role, permission, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const [roleRecord, permRecord] = await Promise.all([
         prisma.permifyRole.findUniqueOrThrow({ where: { name: role } }),
         prisma.permifyPermission.findUniqueOrThrow({ where: { name: permission } })
       ]);
       await prisma.permifyRoleHasPermission.upsert({
         where: {
-          roleId_permissionId: {
+          [getScopedCompoundKeyName(
+            ["roleId", "permissionId"],
+            [],
+            options.scopeMode
+          )]: {
             roleId: roleRecord.id,
-            permissionId: permRecord.id
+            permissionId: permRecord.id,
+            ...scope
           }
         },
         create: {
           roleId: roleRecord.id,
-          permissionId: permRecord.id
+          permissionId: permRecord.id,
+          ...scope
         },
         update: {}
       });
     },
-    revokePermissionFromRole: async (role, permission, _context) => {
+    revokePermissionFromRole: async (role, permission, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const [roleRecord, permRecord] = await Promise.all([
         prisma.permifyRole.findUnique({ where: { name: role } }),
         prisma.permifyPermission.findUnique({ where: { name: permission } })
@@ -217,11 +283,13 @@ function createPrismaWriteResolver(prisma) {
       await prisma.permifyRoleHasPermission.deleteMany({
         where: {
           roleId: roleRecord.id,
-          permissionId: permRecord.id
+          permissionId: permRecord.id,
+          ...scope
         }
       });
     },
-    syncRolePermissions: async (role, permissions, _context) => {
+    syncRolePermissions: async (role, permissions, context) => {
+      const scope = normalizeScope(options.scopeMode, context);
       const [roleRecord, permRecords] = await Promise.all([
         prisma.permifyRole.findUniqueOrThrow({ where: { name: role } }),
         prisma.permifyPermission.findMany({
@@ -229,12 +297,16 @@ function createPrismaWriteResolver(prisma) {
         })
       ]);
       await prisma.permifyRoleHasPermission.deleteMany({
-        where: { roleId: roleRecord.id }
+        where: {
+          roleId: roleRecord.id,
+          ...scope
+        }
       });
       await prisma.permifyRoleHasPermission.createMany({
         data: permRecords.map((p) => ({
           roleId: roleRecord.id,
-          permissionId: p.id
+          permissionId: p.id,
+          ...scope
         }))
       });
     }

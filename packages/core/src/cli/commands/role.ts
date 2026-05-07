@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { resolveCliAdapterStrategy } from '../utils/strategy';
+import { formatCliScope, getCliScopeContext } from '../utils/scope';
 
 function printFallback(action: string, opts: Record<string, string>): void {
   logger.info(`role:${action} — connect this to your resolver to execute`);
@@ -36,6 +37,9 @@ export async function runRoleCommand(
   }
 
   try {
+    const context = getCliScopeContext(strategy.scopeMode, opts);
+    const scopeSuffix = formatCliScope(strategy.scopeMode, context);
+
     switch (action) {
       case 'create': {
         const result = await strategy.createRole(opts.name);
@@ -63,19 +67,21 @@ export async function runRoleCommand(
       case 'assign':
         await strategy.assignRole(
           { id: opts.modelId, modelType: opts.modelType },
-          opts.role
+          opts.role,
+          context
         );
         logger.success(
-          `Assigned role ${opts.role} to ${opts.modelType}:${opts.modelId}`
+          `Assigned role ${opts.role} to ${opts.modelType}:${opts.modelId}${scopeSuffix}`
         );
         break;
       case 'remove':
         await strategy.removeRole(
           { id: opts.modelId, modelType: opts.modelType },
-          opts.role
+          opts.role,
+          context
         );
         logger.success(
-          `Removed role ${opts.role} from ${opts.modelType}:${opts.modelId}`
+          `Removed role ${opts.role} from ${opts.modelType}:${opts.modelId}${scopeSuffix}`
         );
         break;
       default:

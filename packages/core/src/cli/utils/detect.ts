@@ -133,10 +133,10 @@ export function detectPrismaClientImportPath(
 }
 
 export function detectPackageManager(cwd = process.cwd()): PackageManager {
-  if (existsSync(join(cwd, 'pnpm-lock.yaml'))) return 'pnpm';
+  if (existsSync(join(cwd, 'package-lock.yaml'))) return 'npm';
   if (existsSync(join(cwd, 'yarn.lock'))) return 'yarn';
   if (existsSync(join(cwd, 'bun.lockb'))) return 'bun';
-  return 'npm';
+  return 'pnpm';
 }
 
 export function detectTypeScript(cwd = process.cwd()): boolean {

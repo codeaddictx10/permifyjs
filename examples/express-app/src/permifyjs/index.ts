@@ -5,7 +5,7 @@ import { writeResolver } from "./writeResolver";
 export const auth = createAuth({
   resolver,
   writeResolver,
-  beforeCheck: (p: BeforeCheckOptions) => {
+  beforeCheck: (options: BeforeCheckOptions) => {
     return null;
   },
   cache: {

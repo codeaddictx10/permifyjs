@@ -1,4 +1,7 @@
 import type { PermissionResolver } from '@permifyjs/core';
+import config from '{{configImportPath}}';
 import { createMongooseResolver } from '@permifyjs/mongoose';
 
-export const resolver: PermissionResolver = createMongooseResolver();
+export const resolver: PermissionResolver = createMongooseResolver({
+  scopeMode: config.scopeMode,
+});

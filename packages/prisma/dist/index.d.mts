@@ -1,8 +1,16 @@
 import { PermissionResolver, PermissionWriteResolver } from '@permifyjs/core';
 import { PrismaClient } from '@prisma/client/extension';
 
-declare function createPrismaResolver(prisma: PrismaClient): PermissionResolver;
+type ScopeMode = 'global' | 'tenant' | 'team' | 'tenant-team';
 
-declare function createPrismaWriteResolver(prisma: PrismaClient): PermissionWriteResolver;
+interface PrismaResolverOptions {
+    scopeMode?: ScopeMode;
+}
+declare function createPrismaResolver(prisma: PrismaClient, options?: PrismaResolverOptions): PermissionResolver;
 
-export { createPrismaResolver, createPrismaWriteResolver };
+interface PrismaWriteResolverOptions {
+    scopeMode?: ScopeMode;
+}
+declare function createPrismaWriteResolver(prisma: PrismaClient, options?: PrismaWriteResolverOptions): PermissionWriteResolver;
+
+export { type PrismaResolverOptions, type PrismaWriteResolverOptions, createPrismaResolver, createPrismaWriteResolver };

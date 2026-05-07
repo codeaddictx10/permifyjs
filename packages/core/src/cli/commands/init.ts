@@ -1,11 +1,19 @@
 import prompts from 'prompts';
 import ora from 'ora';
-import { join } from 'path';
+import { extname, join, relative } from 'path';
 import { logger } from '../utils/logger';
-import { generateFile, writeFile, fileExists, readFile, appendToFile } from '../utils/generator';
+import {
+  generateFile,
+  writeFile,
+  fileExists,
+  readFile,
+  appendToFile,
+  renderTemplate,
+} from '../utils/generator';
 import { detectPackageManager, detectInstalledAdapter, detectInstalledFramework, detectPrismaClientImportPath, detectPrismaSchemaPath, detectSrcDir } from '../utils/detect';
 import { installPackages } from '../utils/installer';
-import type { AdapterType, FrameworkType } from '../../types';
+import type { AdapterType, FrameworkType, ScopeMode } from '../../types';
+import { INIT_DEFAULT_SCOPE_MODE, hasTeamScope, hasTenantScope } from '../../scope';
 
 function getTemplatesDir(): string {
   const candidates = [
@@ -27,6 +35,28 @@ function getTemplatesDir(): string {
 }
 
 const TEMPLATES_DIR = getTemplatesDir();
+
+function toImportSpecifier(fromDir: string, targetPath: string): string {
+  const extension = extname(targetPath);
+  const withoutExtension = extension
+    ? targetPath.slice(0, -extension.length)
+    : targetPath;
+
+  let specifier = relative(fromDir, withoutExtension).replace(/\\/g, '/');
+  if (!specifier.startsWith('.')) {
+    specifier = `./${specifier}`;
+  }
+
+  return specifier;
+}
+
+function getScopeTemplateData(scopeMode: ScopeMode) {
+  return {
+    scopeMode,
+    hasTenantScope: hasTenantScope(scopeMode),
+    hasTeamScope: hasTeamScope(scopeMode),
+  };
+}
 
 export async function runInit(): Promise<void> {
   logger.blank();
@@ -79,6 +109,20 @@ export async function runInit(): Promise<void> {
         separator: ',',
       },
       {
+        type: 'select',
+        name: 'scopeMode',
+        message: 'Which scope model does your app use?',
+        choices: [
+          { title: 'Global only', value: 'global' },
+          { title: 'Tenant scoped', value: 'tenant' },
+          { title: 'Team scoped', value: 'team' },
+          { title: 'Tenant + team scoped', value: 'tenant-team' },
+        ],
+        initial: ['global', 'tenant', 'team', 'tenant-team'].indexOf(
+          INIT_DEFAULT_SCOPE_MODE
+        ),
+      },
+      {
         type: 'confirm',
         name: 'enableCache',
         message: 'Enable permission caching?',
@@ -120,6 +164,7 @@ export async function runInit(): Promise<void> {
   const adapter = answers.adapter as AdapterType;
   const framework = answers.framework as FrameworkType;
   const models = (answers.models as string[]).map((m: string) => m.trim()).filter(Boolean);
+  const scopeMode = answers.scopeMode as ScopeMode;
   const enableCache = answers.enableCache as boolean;
   const prismaClientImportPath = (answers.prismaClientImportPath as string | undefined)?.trim();
 
@@ -155,7 +200,7 @@ export async function runInit(): Promise<void> {
     await generateFile(
       join(TEMPLATES_DIR, 'config.hbs'),
       configPath,
-      { adapter, framework, models, enableCache }
+      { adapter, framework, models, scopeMode, enableCache }
     );
     logger.success('Generated permifyjs.config.ts');
   }
@@ -163,6 +208,7 @@ export async function runInit(): Promise<void> {
   // ─── Generate src/permifyjs/ files ─────────────────────────────
 
   const permifyDir = join(process.cwd(), srcDir, 'permifyjs');
+  const configImportPath = toImportSpecifier(permifyDir, configPath);
 
   // resolver.ts
   const resolverPath = join(permifyDir, 'resolver.ts');
@@ -172,7 +218,14 @@ export async function runInit(): Promise<void> {
     await generateFile(
       join(TEMPLATES_DIR, adapter, 'resolver.hbs'),
       resolverPath,
-      { adapter, framework, models, prismaClientImportPath }
+      {
+        adapter,
+        framework,
+        models,
+        prismaClientImportPath,
+        configImportPath,
+        ...getScopeTemplateData(scopeMode),
+      }
     );
     logger.success(`Generated ${srcDir}/permifyjs/resolver.ts`);
   }
@@ -185,7 +238,14 @@ export async function runInit(): Promise<void> {
     await generateFile(
       join(TEMPLATES_DIR, adapter, 'writeResolver.hbs'),
       writeResolverPath,
-      { adapter, framework, models, prismaClientImportPath }
+      {
+        adapter,
+        framework,
+        models,
+        prismaClientImportPath,
+        configImportPath,
+        ...getScopeTemplateData(scopeMode),
+      }
     );
     logger.success(`Generated ${srcDir}/permifyjs/writeResolver.ts`);
   }
@@ -206,11 +266,11 @@ export async function runInit(): Promise<void> {
   // ─── Adapter specific setup ─────────────────────────────────────
 
   if (adapter === 'prisma') {
-    await setupPrisma();
+    await setupPrisma(scopeMode);
   }
 
   if (adapter === 'mongoose') {
-    await setupMongoose(srcDir);
+    await setupMongoose(srcDir, configImportPath, scopeMode);
   }
 
   // ─── Done ───────────────────────────────────────────────────────
@@ -239,7 +299,7 @@ export async function runInit(): Promise<void> {
 
 // ─── Adapter setup helpers ──────────────────────────────────────
 
-async function setupPrisma(): Promise<void> {
+async function setupPrisma(scopeMode: ScopeMode): Promise<void> {
   const spinner = ora('Looking for schema.prisma...').start();
   spinner.stop();
 
@@ -279,10 +339,10 @@ async function setupPrisma(): Promise<void> {
       });
 
       if (createAnswer.create) {
-        schemaPath = await createPrismaSchema();
+        schemaPath = await createPrismaSchema(scopeMode);
       } else {
         // ─── Last resort — copy schema fragment to a file ─────────
-        await copySchemaFragment();
+        await copySchemaFragment(scopeMode);
         return;
       }
     } else {
@@ -302,8 +362,9 @@ async function setupPrisma(): Promise<void> {
       return;
     }
 
-    const schemaFragment = await readFile(
-      join(TEMPLATES_DIR, 'prisma/schema.hbs')
+    const schemaFragment = await renderTemplate(
+      join(TEMPLATES_DIR, 'prisma/schema.hbs'),
+      getScopeTemplateData(scopeMode)
     );
 
     await appendToFile(schemaPath, `\n\n${schemaFragment}`);
@@ -317,7 +378,7 @@ async function setupPrisma(): Promise<void> {
 
 // ─── Creates a minimal schema.prisma if none exists ──────────────
 
-async function createPrismaSchema(): Promise<string> {
+async function createPrismaSchema(scopeMode: ScopeMode): Promise<string> {
   const spinner = ora('Creating schema.prisma...').start();
 
   const schemaPath = join(process.cwd(), 'prisma/schema.prisma');
@@ -332,8 +393,9 @@ datasource db {
 }
 `;
 
-  const schemaFragment = await readFile(
-    join(TEMPLATES_DIR, 'prisma/schema.hbs')
+  const schemaFragment = await renderTemplate(
+    join(TEMPLATES_DIR, 'prisma/schema.hbs'),
+    getScopeTemplateData(scopeMode)
   );
 
   await writeFile(schemaPath, `${baseSchema}\n${schemaFragment}`);
@@ -347,12 +409,13 @@ datasource db {
 // ─── Copies schema fragment as a standalone file ──────────────────
 // Last resort — user handles merging themselves
 
-async function copySchemaFragment(): Promise<void> {
+async function copySchemaFragment(scopeMode: ScopeMode): Promise<void> {
   const spinner = ora('Copying schema fragment...').start();
 
   try {
-    const schemaFragment = await readFile(
-      join(TEMPLATES_DIR, 'prisma/schema.hbs')
+    const schemaFragment = await renderTemplate(
+      join(TEMPLATES_DIR, 'prisma/schema.hbs'),
+      getScopeTemplateData(scopeMode)
     );
 
     const outputPath = join(process.cwd(), 'permifyjs.schema.prisma');
@@ -371,7 +434,11 @@ async function copySchemaFragment(): Promise<void> {
   }
 }
 
-async function setupMongoose(srcDir: string): Promise<void> {
+async function setupMongoose(
+  srcDir: string,
+  configImportPath: string,
+  scopeMode: ScopeMode
+): Promise<void> {
   const spinner = ora('Setting up Mongoose models...').start();
 
   try {
@@ -381,13 +448,13 @@ async function setupMongoose(srcDir: string): Promise<void> {
       'permifyjs/registerModels.ts'
     );
 
-    await writeFile(
+    await generateFile(
+      join(TEMPLATES_DIR, 'mongoose/registerModels.hbs'),
       registerPath,
-      `import { registerPermifyModels } from '@permifyjs/mongoose';
-
-// Call this before connecting to MongoDB
-registerPermifyModels();
-`
+      {
+        configImportPath,
+        ...getScopeTemplateData(scopeMode),
+      }
     );
 
     spinner.succeed('Generated src/permifyjs/registerModels.ts');

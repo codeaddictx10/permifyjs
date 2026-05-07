@@ -7,8 +7,9 @@ import {
   registerPermifyModels,
   type RegisterPermifyModelsOptions,
 } from './models';
+import { normalizeScope } from './scope';
 
-export interface MongooseResolverOptions extends RegisterPermifyModelsOptions {}
+export interface MongooseResolverOptions extends RegisterPermifyModelsOptions { }
 
 function normalizeModel(model: AuthModel): AuthModel {
   return {
@@ -23,17 +24,19 @@ export function createMongooseResolver(
   const models = registerPermifyModels(options);
 
   return {
-    async getRoles(model: AuthModel, _context?: AuthContext): Promise<string[]> {
+    async getRoles(model: AuthModel, context?: AuthContext): Promise<string[]> {
       const normalized = normalizeModel(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const assignments = await models.ModelHasRole.find({
         modelId: normalized.id,
         modelType: normalized.modelType,
+        ...scope,
       }).lean();
 
       if (assignments.length === 0) return [];
 
       const roleIds = assignments.map((assignment) => assignment.roleId);
-      const roles = await models.Role.find({ _id: { $in: roleIds } })
+      const roles = await models.Role.find({ _id: { $in: roleIds }, ...scope })
         .select({ name: 1, _id: 0 })
         .lean();
 
@@ -42,12 +45,14 @@ export function createMongooseResolver(
 
     async getDirectPermissions(
       model: AuthModel,
-      _context?: AuthContext
+      context?: AuthContext
     ): Promise<string[]> {
       const normalized = normalizeModel(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const assignments = await models.ModelHasPermission.find({
         modelId: normalized.id,
         modelType: normalized.modelType,
+        ...scope,
       }).lean();
 
       if (assignments.length === 0) return [];
@@ -64,12 +69,14 @@ export function createMongooseResolver(
 
     async getPermissionsThroughRoles(
       model: AuthModel,
-      _context?: AuthContext
+      context?: AuthContext
     ): Promise<string[]> {
       const normalized = normalizeModel(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const assignments = await models.ModelHasRole.find({
         modelId: normalized.id,
         modelType: normalized.modelType,
+        ...scope,
       }).lean();
 
       if (assignments.length === 0) return [];
@@ -77,6 +84,7 @@ export function createMongooseResolver(
       const roleIds = assignments.map((assignment) => assignment.roleId);
       const rolePermissionLinks = await models.RoleHasPermission.find({
         roleId: { $in: roleIds },
+        ...scope,
       }).lean();
 
       if (rolePermissionLinks.length === 0) return [];
@@ -93,13 +101,15 @@ export function createMongooseResolver(
 
     async getRolePermissions(
       role: string,
-      _context?: AuthContext
+      context?: AuthContext
     ): Promise<string[]> {
-      const roleDoc = await models.Role.findOne({ name: role }).lean();
+      const scope = normalizeScope(options.scopeMode, context);
+      const roleDoc = await models.Role.findOne({ name: role, ...scope }).lean();
       if (!roleDoc?._id) return [];
 
       const links = await models.RoleHasPermission.find({
         roleId: roleDoc._id,
+        ...scope,
       }).lean();
 
       if (links.length === 0) return [];

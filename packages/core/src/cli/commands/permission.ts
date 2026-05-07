@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { resolveCliAdapterStrategy } from '../utils/strategy';
+import { formatCliScope, getCliScopeContext } from '../utils/scope';
 
 function printFallback(action: string, opts: Record<string, string>): void {
   switch (action) {
@@ -32,6 +33,9 @@ export async function runPermissionCommand(
   }
 
   try {
+    const context = getCliScopeContext(strategy.scopeMode, opts);
+    const scopeSuffix = formatCliScope(strategy.scopeMode, context);
+
     switch (action) {
       case 'create': {
         const result = await strategy.createPermission(opts.name);
@@ -57,9 +61,9 @@ export async function runPermissionCommand(
         break;
       }
       case 'assign':
-        await strategy.assignPermissionToRole(opts.role, opts.permission);
+        await strategy.assignPermissionToRole(opts.role, opts.permission, context);
         logger.success(
-          `Assigned permission ${opts.permission} to role ${opts.role}`
+          `Assigned permission ${opts.permission} to role ${opts.role}${scopeSuffix}`
         );
         break;
       default:

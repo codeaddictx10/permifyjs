@@ -9,6 +9,8 @@ import { createPrismaResolver } from '../resolver';
 import { createPrismaWriteResolver } from '../writeResolver';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 
+const GLOBAL_SCOPE = '__permify_global__';
+
 let DatabaseSync:
   | (new (path: string) => {
       prepare(sql: string): { get(): Record<string, unknown> | undefined };
@@ -100,33 +102,39 @@ model PermifyPermission {
 model PermifyRoleHasPermission {
   roleId       String
   permissionId String
+  tenantId     String   @default("${GLOBAL_SCOPE}")
+  teamId       String   @default("${GLOBAL_SCOPE}")
 
   role       PermifyRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission PermifyPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@id([roleId, permissionId])
+  @@id([roleId, permissionId, tenantId, teamId])
   @@map("role_has_permissions")
 }
 
 model PermifyModelHasRole {
   modelId   String
   modelType String
+  tenantId  String   @default("${GLOBAL_SCOPE}")
+  teamId    String   @default("${GLOBAL_SCOPE}")
   roleId    String
 
   role PermifyRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@id([modelId, modelType, roleId])
+  @@id([modelId, modelType, tenantId, teamId, roleId])
   @@map("model_has_roles")
 }
 
 model PermifyModelHasPermission {
   modelId      String
   modelType    String
+  tenantId     String   @default("${GLOBAL_SCOPE}")
+  teamId       String   @default("${GLOBAL_SCOPE}")
   permissionId String
 
   permission PermifyPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@id([modelId, modelType, permissionId])
+  @@id([modelId, modelType, tenantId, teamId, permissionId])
   @@map("model_has_permissions")
 }
 `
@@ -183,21 +191,27 @@ export default defineConfig({
       CREATE TABLE role_has_permissions (
         roleId TEXT NOT NULL,
         permissionId TEXT NOT NULL,
-        PRIMARY KEY (roleId, permissionId)
+        tenantId TEXT NOT NULL,
+        teamId TEXT NOT NULL,
+        PRIMARY KEY (roleId, permissionId, tenantId, teamId)
       );
 
       CREATE TABLE model_has_roles (
         modelId TEXT NOT NULL,
         modelType TEXT NOT NULL,
+        tenantId TEXT NOT NULL,
+        teamId TEXT NOT NULL,
         roleId TEXT NOT NULL,
-        PRIMARY KEY (modelId, modelType, roleId)
+        PRIMARY KEY (modelId, modelType, tenantId, teamId, roleId)
       );
 
       CREATE TABLE model_has_permissions (
         modelId TEXT NOT NULL,
         modelType TEXT NOT NULL,
+        tenantId TEXT NOT NULL,
+        teamId TEXT NOT NULL,
         permissionId TEXT NOT NULL,
-        PRIMARY KEY (modelId, modelType, permissionId)
+        PRIMARY KEY (modelId, modelType, tenantId, teamId, permissionId)
       );
     `);
       sqlite.close();
@@ -210,6 +224,7 @@ export default defineConfig({
       const prisma = new PrismaClient({ adapter });
 
       try {
+        const scopedContext = { tenantId: 'acme', teamId: 'design' };
         const [
           adminRole,
           editorRole,
@@ -249,25 +264,64 @@ export default defineConfig({
           { id: 'team-1', modelType: 'Team' },
           'team.manage'
         );
+        await writeResolver.assignRole({ id: 'user-1' }, 'editor', scopedContext);
+        await writeResolver.givePermissionTo(
+          { id: 'user-1' },
+          'team.manage',
+          scopedContext
+        );
+        await writeResolver.assignPermissionToRole(
+          'editor',
+          'post.archive',
+          scopedContext
+        );
+        await writeResolver.assignPermissionToRole(
+          'editor',
+          'post.archive',
+          scopedContext
+        );
 
         expect(await resolver.getRoles({ id: 'user-1' })).toEqual(['admin']);
+        expect(await resolver.getRoles({ id: 'user-1' }, scopedContext)).toEqual([
+          'editor',
+        ]);
         expect(await resolver.getDirectPermissions({ id: 'user-1' })).toEqual([
           'post.publish',
         ]);
         expect(
+          await resolver.getDirectPermissions({ id: 'user-1' }, scopedContext)
+        ).toEqual(['team.manage']);
+        expect(
           await resolver.getPermissionsThroughRoles({ id: 'user-1' })
         ).toEqual(expect.arrayContaining(['post.create', 'post.edit']));
+        expect(
+          await resolver.getPermissionsThroughRoles({ id: 'user-1' }, scopedContext)
+        ).toEqual(['post.archive']);
         expect(await resolver.getRolePermissions('admin')).toEqual(
           expect.arrayContaining(['post.create', 'post.edit'])
         );
+        expect(await resolver.getRolePermissions('editor')).toEqual(['post.publish']);
+        expect(await resolver.getRolePermissions('editor', scopedContext)).toEqual([
+          'post.archive',
+        ]);
         expect(
           await prisma.permifyModelHasRole.count({
-            where: { modelId: 'user-1', modelType: 'User' },
+            where: {
+              modelId: 'user-1',
+              modelType: 'User',
+              tenantId: GLOBAL_SCOPE,
+              teamId: GLOBAL_SCOPE,
+            },
           })
         ).toBe(1);
         expect(
           await prisma.permifyModelHasPermission.count({
-            where: { modelId: 'user-1', modelType: 'User' },
+            where: {
+              modelId: 'user-1',
+              modelType: 'User',
+              tenantId: GLOBAL_SCOPE,
+              teamId: GLOBAL_SCOPE,
+            },
           })
         ).toBe(1);
         expect(await resolver.getRoles({ id: 'team-1', modelType: 'Team' })).toEqual([
@@ -287,17 +341,35 @@ export default defineConfig({
         expect(await resolver.getDirectPermissions({ id: 'user-1' })).toEqual([
           'post.create',
         ]);
+        expect(
+          await resolver.getRoles({ id: 'user-1' }, scopedContext)
+        ).toEqual(['editor']);
+        expect(
+          await resolver.getDirectPermissions({ id: 'user-1' }, scopedContext)
+        ).toEqual(['team.manage']);
         expect(await resolver.getPermissionsThroughRoles({ id: 'user-1' })).toEqual(
           expect.arrayContaining(['post.publish', 'post.archive'])
         );
+        expect(
+          await resolver.getPermissionsThroughRoles({ id: 'user-1' }, scopedContext)
+        ).toEqual(['post.archive']);
         expect(await resolver.getRolePermissions('editor')).toEqual(
           expect.arrayContaining(['post.publish', 'post.archive'])
         );
+        expect(await resolver.getRolePermissions('editor', scopedContext)).toEqual([
+          'post.archive',
+        ]);
 
         await writeResolver.removeRole({ id: 'user-1' }, 'editor');
         await writeResolver.revokePermissionTo({ id: 'user-1' }, 'post.create');
         expect(await resolver.getRoles({ id: 'user-1' })).toEqual([]);
         expect(await resolver.getDirectPermissions({ id: 'user-1' })).toEqual([]);
+        expect(
+          await resolver.getRoles({ id: 'user-1' }, scopedContext)
+        ).toEqual(['editor']);
+        expect(
+          await resolver.getDirectPermissions({ id: 'user-1' }, scopedContext)
+        ).toEqual(['team.manage']);
 
         await writeResolver.assignRole({ id: 'user-1' }, 'admin');
         await writeResolver.givePermissionTo({ id: 'user-1' }, 'post.publish');

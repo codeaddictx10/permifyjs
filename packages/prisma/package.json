@@ -1,6 +1,6 @@
 {
   "name": "@permifyjs/prisma",
-  "version": "0.3.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Prisma adapter for PermifyJS",
   "files": [
     "dist",
@@ -48,7 +48,7 @@
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
   },
   "dependencies": {
-    "@permifyjs/core": "workspace:^0.3.0-beta.0"
+    "@permifyjs/core": "workspace:^1.0.0-beta.1"
   },
   "peerDependencies": {
     "@prisma/client": "^7.6.0"

@@ -1,4 +1,7 @@
 import type { PermissionWriteResolver } from '@permifyjs/core';
+import config from '{{configImportPath}}';
 import { createMongooseWriteResolver } from '@permifyjs/mongoose';
 
-export const writeResolver: PermissionWriteResolver = createMongooseWriteResolver();
+export const writeResolver: PermissionWriteResolver = createMongooseWriteResolver({
+  scopeMode: config.scopeMode,
+});

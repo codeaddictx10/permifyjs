@@ -1,5 +1,8 @@
-import type { PermissionResolver, AuthModel, AuthContext } from '@permifyjs/core';
+import type { PermissionResolver } from '@permifyjs/core';
+import config from '{{configImportPath}}';
 import { createPrismaResolver } from '@permifyjs/prisma';
 import { prisma } from '{{prismaClientImportPath}}';
 
-export const resolver: PermissionResolver = createPrismaResolver(prisma);
+export const resolver: PermissionResolver = createPrismaResolver(prisma, {
+  scopeMode: config.scopeMode,
+});

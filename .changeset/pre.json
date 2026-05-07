@@ -7,9 +7,11 @@
     "@permifyjs/express": "0.2.0",
     "@permifyjs/mongoose": "0.2.0",
     "@permifyjs/nestjs": "0.2.0",
-    "@permifyjs/prisma": "0.2.0"
+    "@permifyjs/prisma": "0.2.0",
+    "express-app-tenant-aware": "0.2.0-beta.0"
   },
   "changesets": [
+    "brown-wings-cough",
     "long-mugs-flash"
   ]
 }

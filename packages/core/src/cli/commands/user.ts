@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { resolveCliAdapterStrategy } from '../utils/strategy';
+import { formatCliScope, getCliScopeContext } from '../utils/scope';
 
 function printFallback(action: string, opts: Record<string, string>): void {
   switch (action) {
@@ -30,12 +31,14 @@ export async function runUserCommand(
 
   try {
     const model = { id: opts.modelId, modelType: opts.modelType };
+    const context = getCliScopeContext(strategy.scopeMode, opts);
+    const scopeSuffix = formatCliScope(strategy.scopeMode, context);
 
     switch (action) {
       case 'roles': {
-        const roles = await strategy.getRoles(model);
+        const roles = await strategy.getRoles(model, context);
 
-        logger.info(`Roles for ${opts.modelType}:${opts.modelId}`);
+        logger.info(`Roles for ${opts.modelType}:${opts.modelId}${scopeSuffix}`);
         if (roles.length === 0) {
           logger.step('No roles found.');
           break;
@@ -47,9 +50,9 @@ export async function runUserCommand(
         break;
       }
       case 'permissions': {
-        const permissions = await strategy.getPermissions(model);
+        const permissions = await strategy.getPermissions(model, context);
 
-        logger.info(`Permissions for ${opts.modelType}:${opts.modelId}`);
+        logger.info(`Permissions for ${opts.modelType}:${opts.modelId}${scopeSuffix}`);
         if (permissions.length === 0) {
           logger.step('No permissions found.');
           break;

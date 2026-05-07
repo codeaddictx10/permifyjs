@@ -1,0 +1,5 @@
+import config from '{{configImportPath}}';
+import { registerPermifyModels } from '@permifyjs/mongoose';
+
+// Call this before connecting to MongoDB
+registerPermifyModels({ scopeMode: config.scopeMode });

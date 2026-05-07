@@ -503,6 +503,31 @@ function defineConfig(config) {
   return config;
 }
 
+// src/scope.ts
+var DEFAULT_SCOPE_MODE = "tenant-team";
+var INIT_DEFAULT_SCOPE_MODE = "global";
+function normalizeScopeMode(scopeMode) {
+  return scopeMode ?? DEFAULT_SCOPE_MODE;
+}
+function hasTenantScope(scopeMode) {
+  const mode = normalizeScopeMode(scopeMode);
+  return mode === "tenant" || mode === "tenant-team";
+}
+function hasTeamScope(scopeMode) {
+  const mode = normalizeScopeMode(scopeMode);
+  return mode === "team" || mode === "tenant-team";
+}
+function getEnabledScopeFields(scopeMode) {
+  const fields = [];
+  if (hasTenantScope(scopeMode)) {
+    fields.push("tenantId");
+  }
+  if (hasTeamScope(scopeMode)) {
+    fields.push("teamId");
+  }
+  return fields;
+}
+
 // src/seeding.ts
 function unique(values) {
   return [...new Set(values ?? [])];
@@ -550,6 +575,8 @@ async function bootstrapAccess(auth, options) {
 }
 export {
   AuthEngine,
+  DEFAULT_SCOPE_MODE,
+  INIT_DEFAULT_SCOPE_MODE,
   MemoryCacheStore,
   PermissionCache,
   Role,
@@ -557,6 +584,7 @@ export {
   createAuth,
   defineConfig,
   defineRoles,
+  getEnabledScopeFields,
   hasAllDirectPermissions,
   hasAllPermissions,
   hasAllRoles,
@@ -565,6 +593,9 @@ export {
   hasAnyRole,
   hasAnyRoleOrPermission,
   hasRoleOrPermission,
+  hasTeamScope,
+  hasTenantScope,
+  normalizeScopeMode,
   seedRoles,
   syncRolesAndPermissions
 };

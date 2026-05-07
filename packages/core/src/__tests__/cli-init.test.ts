@@ -57,6 +57,7 @@ describe('runInit()', () => {
       adapter: 'prisma',
       framework: 'express',
       models: ['User'],
+      scopeMode: 'global',
       enableCache: true,
       prismaClientImportPath: '../db/client',
       confirm: true,
@@ -77,6 +78,9 @@ describe('runInit()', () => {
     expect(readFileSync(join(cwd, 'permifyjs.config.ts'), 'utf-8')).toContain(
       "adapter: 'prisma'"
     );
+    expect(readFileSync(join(cwd, 'permifyjs.config.ts'), 'utf-8')).toContain(
+      "scopeMode: 'global'"
+    );
     expect(readFileSync(join(cwd, 'src/permifyjs/index.ts'), 'utf-8')).toContain(
       'export const auth = createAuth({'
     );
@@ -96,12 +100,21 @@ describe('runInit()', () => {
       'utf-8'
     );
 
+    expect(resolverContents).toContain(`import config from '../../permifyjs.config';`);
     expect(resolverContents).toContain(`import { prisma } from '../db/client';`);
+    expect(resolverContents).toContain('scopeMode: config.scopeMode');
     expect(writeResolverContents).toContain(
       `import { prisma } from '../db/client';`
     );
+    expect(writeResolverContents).toContain('scopeMode: config.scopeMode');
     expect(readFileSync(join(cwd, 'prisma/schema.prisma'), 'utf-8')).toContain(
       'model PermifyRole'
+    );
+    expect(readFileSync(join(cwd, 'prisma/schema.prisma'), 'utf-8')).not.toContain(
+      'tenantId'
+    );
+    expect(readFileSync(join(cwd, 'prisma/schema.prisma'), 'utf-8')).not.toContain(
+      'teamId'
     );
   });
 
@@ -125,6 +138,7 @@ describe('runInit()', () => {
       adapter: 'mongoose',
       framework: 'nestjs',
       models: ['User', 'Team'],
+      scopeMode: 'global',
       enableCache: false,
       confirm: true,
     });
@@ -147,6 +161,9 @@ describe('runInit()', () => {
     expect(readFileSync(join(cwd, 'permifyjs.config.ts'), 'utf-8')).toContain(
       "models: ['User', 'Team']"
     );
+    expect(readFileSync(join(cwd, 'permifyjs.config.ts'), 'utf-8')).toContain(
+      "scopeMode: 'global'"
+    );
     expect(readFileSync(join(cwd, 'permifyjs.config.ts'), 'utf-8')).not.toContain(
       'cache: {'
     );
@@ -155,6 +172,45 @@ describe('runInit()', () => {
     );
     expect(
       readFileSync(join(cwd, 'src/permifyjs/registerModels.ts'), 'utf-8')
-    ).toContain("registerPermifyModels()");
+    ).toContain("registerPermifyModels({ scopeMode: config.scopeMode });");
+  });
+
+  it('generates tenant-only prisma schema and resolver config wiring when requested', async () => {
+    const cwd = createTempDir();
+    mkdirSync(join(cwd, 'src', 'db'), { recursive: true });
+    mkdirSync(join(cwd, 'prisma'), { recursive: true });
+
+    writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'test-app' }));
+    writeFileSync(join(cwd, 'tsconfig.json'), JSON.stringify({ compilerOptions: {} }));
+    writeFileSync(join(cwd, 'src/db/client.ts'), 'export const prisma = {};');
+    writeFileSync(
+      join(cwd, 'prisma/schema.prisma'),
+      'generator client { provider = "prisma-client-js" }\ndatasource db { provider = "sqlite" url = env("DATABASE_URL") }'
+    );
+
+    promptsMock.mockResolvedValue({
+      adapter: 'prisma',
+      framework: 'express',
+      models: ['User'],
+      scopeMode: 'tenant',
+      enableCache: false,
+      prismaClientImportPath: '../db/client',
+      confirm: true,
+    });
+
+    installPackagesMock.mockResolvedValue(undefined);
+    process.chdir(cwd);
+
+    vi.resetModules();
+    const { runInit } = await import('../cli/commands/init');
+    await runInit();
+
+    const configContents = readFileSync(join(cwd, 'permifyjs.config.ts'), 'utf-8');
+    const schemaContents = readFileSync(join(cwd, 'prisma/schema.prisma'), 'utf-8');
+
+    expect(configContents).toContain("scopeMode: 'tenant'");
+    expect(schemaContents).toContain('tenantId');
+    expect(schemaContents).not.toContain('teamId');
+    expect(schemaContents).toContain('@@id([roleId, permissionId, tenantId])');
   });
 });

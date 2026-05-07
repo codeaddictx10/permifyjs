@@ -161,7 +161,7 @@ export const auth = createAuth({
 
 Run the schema setup through the CLI or use the schema fragment in [packages/core/src/cli/templates/prisma/schema.hbs](/Users/CodeAddictx/Desktop/dev/packages/permifyjs/packages/core/src/cli/templates/prisma/schema.hbs).
 
-`permifyjs init` will ask for your Prisma client import path, so you do not need to keep Prisma in a fixed `../lib/prisma` location.
+`permifyjs init` will ask for your Prisma client import path, so you do not need to keep Prisma in a fixed `../lib/prisma` location. It will also ask for `scopeMode`, which controls whether the generated schema uses no scope fields, only `tenantId`, only `teamId`, or both.
 
 ## 6. Mongoose Setup
 
@@ -182,6 +182,8 @@ export const auth = createAuth({
   writeResolver: createMongooseWriteResolver(),
 });
 ```
+
+If your app uses `scopeMode: 'global'`, omit tenant/team context in your framework adapter. If it uses `tenant`, `team`, or `tenant-team`, only pass the fields required by that mode.
 
 ## 7. CLI Commands
 

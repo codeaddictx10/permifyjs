@@ -9,6 +9,7 @@ interface AuthContext {
     tenantId?: string;
     [key: string]: unknown;
 }
+type ScopeMode = 'global' | 'tenant' | 'team' | 'tenant-team';
 interface PermissionResolver {
     getRoles(model: AuthModel, context?: AuthContext): Promise<string[]>;
     getDirectPermissions(model: AuthModel, context?: AuthContext): Promise<string[]>;
@@ -69,6 +70,7 @@ interface PermifyConfig {
     adapter: AdapterType;
     framework: FrameworkType;
     models?: string[];
+    scopeMode?: ScopeMode;
     cache?: CacheOptions;
     tables?: {
         roles?: string;
@@ -162,6 +164,13 @@ declare class AuthEngine {
 declare function createAuth(opts: AuthOptions): AuthEngine;
 declare function defineConfig(config: PermifyConfig): PermifyConfig;
 
+declare const DEFAULT_SCOPE_MODE: ScopeMode;
+declare const INIT_DEFAULT_SCOPE_MODE: ScopeMode;
+declare function normalizeScopeMode(scopeMode?: ScopeMode): ScopeMode;
+declare function hasTenantScope(scopeMode?: ScopeMode): boolean;
+declare function hasTeamScope(scopeMode?: ScopeMode): boolean;
+declare function getEnabledScopeFields(scopeMode?: ScopeMode): Array<'tenantId' | 'teamId'>;
+
 interface RoleSeedDefinition {
     permissions?: string[];
 }
@@ -192,4 +201,4 @@ declare function hasAllDirectPermissions(auth: AuthEngine, user: AuthUser, permi
 declare function hasRoleOrPermission(auth: AuthEngine, user: AuthUser, role: string, permission: string, context?: AuthContext): Promise<boolean>;
 declare function hasAnyRoleOrPermission(auth: AuthEngine, user: AuthUser, roles: string[], permissions: string[], context?: AuthContext): Promise<boolean>;
 
-export { type AdapterType, type AuthContext, AuthEngine, type AuthModel, type AuthOptions, type AuthUser, type BeforeCheckOptions, type BootstrapAccessOptions, type CacheEntry, type CacheOptions, type CacheStore, type CacheValue, type FrameworkType, MemoryCacheStore, type PermifyConfig, PermissionCache, type PermissionResolver, type PermissionWriteResolver, Role, type RoleCacheEntry, type RoleSeedDefinition, type RoleSeedMap, type SeedRolesOptions, bootstrapAccess, createAuth, defineConfig, defineRoles, hasAllDirectPermissions, hasAllPermissions, hasAllRoles, hasAnyDirectPermission, hasAnyPermission, hasAnyRole, hasAnyRoleOrPermission, hasRoleOrPermission, seedRoles, syncRolesAndPermissions };
+export { type AdapterType, type AuthContext, AuthEngine, type AuthModel, type AuthOptions, type AuthUser, type BeforeCheckOptions, type BootstrapAccessOptions, type CacheEntry, type CacheOptions, type CacheStore, type CacheValue, DEFAULT_SCOPE_MODE, type FrameworkType, INIT_DEFAULT_SCOPE_MODE, MemoryCacheStore, type PermifyConfig, PermissionCache, type PermissionResolver, type PermissionWriteResolver, Role, type RoleCacheEntry, type RoleSeedDefinition, type RoleSeedMap, type ScopeMode, type SeedRolesOptions, bootstrapAccess, createAuth, defineConfig, defineRoles, getEnabledScopeFields, hasAllDirectPermissions, hasAllPermissions, hasAllRoles, hasAnyDirectPermission, hasAnyPermission, hasAnyRole, hasAnyRoleOrPermission, hasRoleOrPermission, hasTeamScope, hasTenantScope, normalizeScopeMode, seedRoles, syncRolesAndPermissions };

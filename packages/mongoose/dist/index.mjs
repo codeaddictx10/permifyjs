@@ -2,6 +2,40 @@
 import mongoose, {
   Schema
 } from "mongoose";
+
+// src/scope.ts
+var GLOBAL_SCOPE = "__permify_global__";
+function getEnabledScopeFields(scopeMode) {
+  switch (scopeMode ?? "tenant-team") {
+    case "global":
+      return [];
+    case "tenant":
+      return ["tenantId"];
+    case "team":
+      return ["teamId"];
+    default:
+      return ["tenantId", "teamId"];
+  }
+}
+function normalizeScope(scopeMode, context) {
+  const scope = {};
+  for (const field of getEnabledScopeFields(scopeMode)) {
+    scope[field] = context?.[field] ?? GLOBAL_SCOPE;
+  }
+  return scope;
+}
+function getScopedIndexShape(prefix, suffix, scopeMode) {
+  const index = { ...prefix };
+  for (const field of getEnabledScopeFields(scopeMode)) {
+    index[field] = 1;
+  }
+  return {
+    ...index,
+    ...suffix
+  };
+}
+
+// src/models.ts
 var DEFAULT_MODEL_NAMES = {
   role: "PermifyRole",
   permission: "PermifyPermission",
@@ -21,6 +55,43 @@ function getRegistry(options = {}) {
 }
 function getCollectionName(key, options) {
   return options?.collectionNames?.[key] ?? DEFAULT_COLLECTIONS[key];
+}
+var REGISTRY_SCOPE_MODE = /* @__PURE__ */ Symbol.for("permifyjs.scopeMode");
+function getEnabledScopeFields2(scopeMode) {
+  switch (scopeMode ?? "tenant-team") {
+    case "global":
+      return [];
+    case "tenant":
+      return ["tenantId"];
+    case "team":
+      return ["teamId"];
+    default:
+      return ["tenantId", "teamId"];
+  }
+}
+function getResolvedScopeMode(options) {
+  return options?.scopeMode ?? "tenant-team";
+}
+function getScopeSchemaFields(scopeMode) {
+  const fields = {};
+  for (const field of getEnabledScopeFields2(scopeMode)) {
+    fields[field] = {
+      type: String,
+      required: true,
+      default: GLOBAL_SCOPE,
+      index: true
+    };
+  }
+  return fields;
+}
+function assertRegistryScopeMode(registry, scopeMode) {
+  const existingScopeMode = registry[REGISTRY_SCOPE_MODE];
+  if (existingScopeMode && existingScopeMode !== scopeMode) {
+    throw new Error(
+      `[permifyjs] registerPermifyModels() already initialized this Mongoose registry with scopeMode "${existingScopeMode}". Received "${scopeMode}".`
+    );
+  }
+  registry[REGISTRY_SCOPE_MODE] = scopeMode;
 }
 function createRoleSchema(collectionName) {
   return new Schema(
@@ -44,7 +115,7 @@ function createPermissionSchema(collectionName) {
     }
   );
 }
-function createRoleHasPermissionSchema(collectionName) {
+function createRoleHasPermissionSchema(collectionName, scopeMode) {
   const schema = new Schema(
     {
       roleId: {
@@ -58,21 +129,26 @@ function createRoleHasPermissionSchema(collectionName) {
         ref: DEFAULT_MODEL_NAMES.permission,
         required: true,
         index: true
-      }
+      },
+      ...getScopeSchemaFields(scopeMode)
     },
     {
       timestamps: false,
       collection: collectionName
     }
   );
-  schema.index({ roleId: 1, permissionId: 1 }, { unique: true });
+  schema.index(
+    getScopedIndexShape({ roleId: 1, permissionId: 1 }, {}, scopeMode),
+    { unique: true }
+  );
   return schema;
 }
-function createModelHasRoleSchema(collectionName) {
+function createModelHasRoleSchema(collectionName, scopeMode) {
   const schema = new Schema(
     {
       modelId: { type: String, required: true, index: true },
       modelType: { type: String, required: true, index: true },
+      ...getScopeSchemaFields(scopeMode),
       roleId: {
         type: Schema.Types.ObjectId,
         ref: DEFAULT_MODEL_NAMES.role,
@@ -85,14 +161,18 @@ function createModelHasRoleSchema(collectionName) {
       collection: collectionName
     }
   );
-  schema.index({ modelId: 1, modelType: 1, roleId: 1 }, { unique: true });
+  schema.index(
+    getScopedIndexShape({ modelId: 1, modelType: 1 }, { roleId: 1 }, scopeMode),
+    { unique: true }
+  );
   return schema;
 }
-function createModelHasPermissionSchema(collectionName) {
+function createModelHasPermissionSchema(collectionName, scopeMode) {
   const schema = new Schema(
     {
       modelId: { type: String, required: true, index: true },
       modelType: { type: String, required: true, index: true },
+      ...getScopeSchemaFields(scopeMode),
       permissionId: {
         type: Schema.Types.ObjectId,
         ref: DEFAULT_MODEL_NAMES.permission,
@@ -105,11 +185,20 @@ function createModelHasPermissionSchema(collectionName) {
       collection: collectionName
     }
   );
-  schema.index({ modelId: 1, modelType: 1, permissionId: 1 }, { unique: true });
+  schema.index(
+    getScopedIndexShape(
+      { modelId: 1, modelType: 1 },
+      { permissionId: 1 },
+      scopeMode
+    ),
+    { unique: true }
+  );
   return schema;
 }
 function registerPermifyModels(options = {}) {
   const registry = getRegistry(options);
+  const scopeMode = getResolvedScopeMode(options);
+  assertRegistryScopeMode(registry, scopeMode);
   const Role = registry.models[DEFAULT_MODEL_NAMES.role] ?? registry.model(
     DEFAULT_MODEL_NAMES.role,
     createRoleSchema(getCollectionName("roles", options))
@@ -121,17 +210,19 @@ function registerPermifyModels(options = {}) {
   const RoleHasPermission = registry.models[DEFAULT_MODEL_NAMES.roleHasPermission] ?? registry.model(
     DEFAULT_MODEL_NAMES.roleHasPermission,
     createRoleHasPermissionSchema(
-      getCollectionName("roleHasPermissions", options)
+      getCollectionName("roleHasPermissions", options),
+      scopeMode
     )
   );
   const ModelHasRole = registry.models[DEFAULT_MODEL_NAMES.modelHasRole] ?? registry.model(
     DEFAULT_MODEL_NAMES.modelHasRole,
-    createModelHasRoleSchema(getCollectionName("modelHasRoles", options))
+    createModelHasRoleSchema(getCollectionName("modelHasRoles", options), scopeMode)
   );
   const ModelHasPermission = registry.models[DEFAULT_MODEL_NAMES.modelHasPermission] ?? registry.model(
     DEFAULT_MODEL_NAMES.modelHasPermission,
     createModelHasPermissionSchema(
-      getCollectionName("modelHasPermissions", options)
+      getCollectionName("modelHasPermissions", options),
+      scopeMode
     )
   );
   return {
@@ -153,22 +244,26 @@ function normalizeModel(model) {
 function createMongooseResolver(options = {}) {
   const models = registerPermifyModels(options);
   return {
-    async getRoles(model, _context) {
+    async getRoles(model, context) {
       const normalized = normalizeModel(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const assignments = await models.ModelHasRole.find({
         modelId: normalized.id,
-        modelType: normalized.modelType
+        modelType: normalized.modelType,
+        ...scope
       }).lean();
       if (assignments.length === 0) return [];
       const roleIds = assignments.map((assignment) => assignment.roleId);
       const roles = await models.Role.find({ _id: { $in: roleIds } }).select({ name: 1, _id: 0 }).lean();
       return roles.map((role) => role.name);
     },
-    async getDirectPermissions(model, _context) {
+    async getDirectPermissions(model, context) {
       const normalized = normalizeModel(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const assignments = await models.ModelHasPermission.find({
         modelId: normalized.id,
-        modelType: normalized.modelType
+        modelType: normalized.modelType,
+        ...scope
       }).lean();
       if (assignments.length === 0) return [];
       const permissionIds = assignments.map((assignment) => assignment.permissionId);
@@ -177,16 +272,19 @@ function createMongooseResolver(options = {}) {
       }).select({ name: 1, _id: 0 }).lean();
       return permissions.map((permission) => permission.name);
     },
-    async getPermissionsThroughRoles(model, _context) {
+    async getPermissionsThroughRoles(model, context) {
       const normalized = normalizeModel(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const assignments = await models.ModelHasRole.find({
         modelId: normalized.id,
-        modelType: normalized.modelType
+        modelType: normalized.modelType,
+        ...scope
       }).lean();
       if (assignments.length === 0) return [];
       const roleIds = assignments.map((assignment) => assignment.roleId);
       const rolePermissionLinks = await models.RoleHasPermission.find({
-        roleId: { $in: roleIds }
+        roleId: { $in: roleIds },
+        ...scope
       }).lean();
       if (rolePermissionLinks.length === 0) return [];
       const permissionIds = rolePermissionLinks.map((link) => link.permissionId);
@@ -195,11 +293,13 @@ function createMongooseResolver(options = {}) {
       }).select({ name: 1, _id: 0 }).lean();
       return [...new Set(permissions.map((permission) => permission.name))];
     },
-    async getRolePermissions(role, _context) {
+    async getRolePermissions(role, context) {
+      const scope = normalizeScope(options.scopeMode, context);
       const roleDoc = await models.Role.findOne({ name: role }).lean();
       if (!roleDoc?._id) return [];
       const links = await models.RoleHasPermission.find({
-        roleId: roleDoc._id
+        roleId: roleDoc._id,
+        ...scope
       }).lean();
       if (links.length === 0) return [];
       const permissionIds = links.map((link) => link.permissionId);
@@ -237,72 +337,84 @@ async function findPermissionIdOrThrow(permissionName, options) {
 function createMongooseWriteResolver(options = {}) {
   const models = registerPermifyModels(options);
   return {
-    async assignRole(model, role, _context) {
+    async assignRole(model, role, context) {
       const normalized = normalizeModel2(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const roleId = await findRoleIdOrThrow(role, options);
       await models.ModelHasRole.updateOne(
         {
           modelId: normalized.id,
           modelType: normalized.modelType,
+          ...scope,
           roleId
         },
         {
           $setOnInsert: {
             modelId: normalized.id,
             modelType: normalized.modelType,
+            ...scope,
             roleId
           }
         },
         { upsert: true }
       );
     },
-    async removeRole(model, role, _context) {
+    async removeRole(model, role, context) {
       const normalized = normalizeModel2(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const roleDoc = await models.Role.findOne({ name: role }).lean();
       if (!roleDoc?._id) return;
       await models.ModelHasRole.deleteMany({
         modelId: normalized.id,
         modelType: normalized.modelType,
+        ...scope,
         roleId: roleDoc._id
       });
     },
-    async syncRoles(model, roles, _context) {
+    async syncRoles(model, roles, context) {
       const normalized = normalizeModel2(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const roleDocs = await models.Role.find({ name: { $in: roles } }).select({ _id: 1 }).lean();
       await models.ModelHasRole.deleteMany({
         modelId: normalized.id,
-        modelType: normalized.modelType
+        modelType: normalized.modelType,
+        ...scope
       });
       if (roleDocs.length === 0) return;
       await models.ModelHasRole.insertMany(
         roleDocs.map((roleDoc) => ({
           modelId: normalized.id,
           modelType: normalized.modelType,
+          ...scope,
           roleId: roleDoc._id
         }))
       );
     },
-    async givePermissionTo(model, permission, _context) {
+    async givePermissionTo(model, permission, context) {
       const normalized = normalizeModel2(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const permissionId = await findPermissionIdOrThrow(permission, options);
       await models.ModelHasPermission.updateOne(
         {
           modelId: normalized.id,
           modelType: normalized.modelType,
+          ...scope,
           permissionId
         },
         {
           $setOnInsert: {
             modelId: normalized.id,
             modelType: normalized.modelType,
+            ...scope,
             permissionId
           }
         },
         { upsert: true }
       );
     },
-    async revokePermissionTo(model, permission, _context) {
+    async revokePermissionTo(model, permission, context) {
       const normalized = normalizeModel2(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const permissionDoc = await models.Permission.findOne({
         name: permission
       }).lean();
@@ -310,44 +422,55 @@ function createMongooseWriteResolver(options = {}) {
       await models.ModelHasPermission.deleteMany({
         modelId: normalized.id,
         modelType: normalized.modelType,
+        ...scope,
         permissionId: permissionDoc._id
       });
     },
-    async syncPermissions(model, permissions, _context) {
+    async syncPermissions(model, permissions, context) {
       const normalized = normalizeModel2(model);
+      const scope = normalizeScope(options.scopeMode, context);
       const permissionDocs = await models.Permission.find({
         name: { $in: permissions }
       }).select({ _id: 1 }).lean();
       await models.ModelHasPermission.deleteMany({
         modelId: normalized.id,
-        modelType: normalized.modelType
+        modelType: normalized.modelType,
+        ...scope
       });
       if (permissionDocs.length === 0) return;
       await models.ModelHasPermission.insertMany(
         permissionDocs.map((permissionDoc) => ({
           modelId: normalized.id,
           modelType: normalized.modelType,
+          ...scope,
           permissionId: permissionDoc._id
         }))
       );
     },
-    async assignPermissionToRole(role, permission, _context) {
+    async assignPermissionToRole(role, permission, context) {
+      const scope = normalizeScope(options.scopeMode, context);
       const [roleId, permissionId] = await Promise.all([
         findRoleIdOrThrow(role, options),
         findPermissionIdOrThrow(permission, options)
       ]);
       await models.RoleHasPermission.updateOne(
-        { roleId, permissionId },
+        {
+          roleId,
+          permissionId,
+          ...scope
+        },
         {
           $setOnInsert: {
             roleId,
-            permissionId
+            permissionId,
+            ...scope
           }
         },
         { upsert: true }
       );
     },
-    async revokePermissionFromRole(role, permission, _context) {
+    async revokePermissionFromRole(role, permission, context) {
+      const scope = normalizeScope(options.scopeMode, context);
       const [roleDoc, permissionDoc] = await Promise.all([
         models.Role.findOne({ name: role }).lean(),
         models.Permission.findOne({ name: permission }).lean()
@@ -355,10 +478,12 @@ function createMongooseWriteResolver(options = {}) {
       if (!roleDoc?._id || !permissionDoc?._id) return;
       await models.RoleHasPermission.deleteMany({
         roleId: roleDoc._id,
-        permissionId: permissionDoc._id
+        permissionId: permissionDoc._id,
+        ...scope
       });
     },
-    async syncRolePermissions(role, permissions, _context) {
+    async syncRolePermissions(role, permissions, context) {
+      const scope = normalizeScope(options.scopeMode, context);
       const [roleDoc, permissionDocs] = await Promise.all([
         models.Role.findOne({ name: role }).lean(),
         models.Permission.find({ name: { $in: permissions } }).select({ _id: 1 }).lean()
@@ -367,13 +492,15 @@ function createMongooseWriteResolver(options = {}) {
         throw new Error(`[permifyjs] role "${role}" not found`);
       }
       await models.RoleHasPermission.deleteMany({
-        roleId: roleDoc._id
+        roleId: roleDoc._id,
+        ...scope
       });
       if (permissionDocs.length === 0) return;
       await models.RoleHasPermission.insertMany(
         permissionDocs.map((permissionDoc) => ({
           roleId: roleDoc._id,
-          permissionId: permissionDoc._id
+          permissionId: permissionDoc._id,
+          ...scope
         }))
       );
     }

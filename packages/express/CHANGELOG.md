@@ -1,5 +1,12 @@
 # @permifyjs/express
 
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @permifyjs/core@1.0.0-beta.1
+
 ## 0.3.0-beta.0
 
 ### Minor Changes

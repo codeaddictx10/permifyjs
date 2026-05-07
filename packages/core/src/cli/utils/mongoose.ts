@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { findProjectPermifyModule, loadProjectConfig, loadProjectPackage } from './project';
+import type { AuthContext, ScopeMode } from '../../types';
 
 type AuthModelLike = {
   id: string;
@@ -22,19 +23,25 @@ type MongooseConnectionLike = {
 type MongooseResolverFactory = (options?: {
   connection?: MongooseConnectionLike;
   collectionNames?: CollectionNames;
+  scopeMode?: ScopeMode;
 }) => {
-  getRoles(model: AuthModelLike): Promise<string[]>;
-  getDirectPermissions(model: AuthModelLike): Promise<string[]>;
-  getPermissionsThroughRoles(model: AuthModelLike): Promise<string[]>;
+  getRoles(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
+  getDirectPermissions(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
+  getPermissionsThroughRoles(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
 };
 
 type MongooseWriteResolverFactory = (options?: {
   connection?: MongooseConnectionLike;
   collectionNames?: CollectionNames;
+  scopeMode?: ScopeMode;
 }) => {
-  assignRole(model: AuthModelLike, role: string): Promise<void>;
-  removeRole(model: AuthModelLike, role: string): Promise<void>;
-  assignPermissionToRole(role: string, permission: string): Promise<void>;
+  assignRole(model: AuthModelLike, role: string, context?: AuthContext): Promise<void>;
+  removeRole(model: AuthModelLike, role: string, context?: AuthContext): Promise<void>;
+  assignPermissionToRole(
+    role: string,
+    permission: string,
+    context?: AuthContext
+  ): Promise<void>;
 };
 
 type MongoosePackage = {
@@ -61,6 +68,7 @@ export async function loadMongooseRuntime(
   createMongooseResolver: MongooseResolverFactory;
   createMongooseWriteResolver: MongooseWriteResolverFactory;
   collectionNames?: CollectionNames;
+  scopeMode?: ScopeMode;
 } | null> {
   const writeResolverPath = findProjectPermifyModule('writeResolver', cwd);
   if (!writeResolverPath) return null;
@@ -92,12 +100,16 @@ export async function loadMongooseRuntime(
 
   const mongoose = loadProjectPackage<MongoosePackage>('mongoose', cwd);
   const connection = await mongoose.createConnection(uri).asPromise();
-  const config = loadProjectConfig(cwd);
+  const config = loadProjectConfig<{
+    tables?: CollectionNames;
+    scopeMode?: ScopeMode;
+  }>(cwd);
 
   return {
     connection,
     createMongooseResolver: writeResolverModule.createMongooseResolver,
     createMongooseWriteResolver: writeResolverModule.createMongooseWriteResolver,
     collectionNames: config?.tables,
+    scopeMode: config?.scopeMode,
   };
 }

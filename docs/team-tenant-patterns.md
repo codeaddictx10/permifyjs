@@ -2,11 +2,19 @@
 
 PermifyJS does not invent tenancy rules for you. `context` is a plain object that your resolver can use to scope reads and writes.
 
+For projects created with `permifyjs init`, scope is explicit through `scopeMode` in `permifyjs.config.ts`:
+
+- `global`: no tenant/team fields in the generated DB shape
+- `tenant`: only `tenantId`
+- `team`: only `teamId`
+- `tenant-team`: both
+
 That means:
 
 - pass `tenantId` when permissions should be isolated per tenant
 - pass `teamId` when permissions should be isolated per team
 - pass both when a team belongs to a tenant and the same team slug can exist in different tenants
+- only pass the fields that match your selected `scopeMode`
 
 ## Mental Model
 
@@ -123,6 +131,17 @@ await auth.assignRole(
 
 Without the matching context, you are writing to a different scope than the one you check later.
 
+## Built-In Adapter Storage
+
+The built-in Prisma and Mongoose adapters now persist scope on the join rows they manage, but only for the fields enabled by `scopeMode`:
+
+- `global`: no scope columns or fields
+- `tenant`: only `tenantId`
+- `team`: only `teamId`
+- `tenant-team`: both `tenantId` and `teamId`
+
+When a scope dimension is enabled but omitted from the runtime context, the built-in adapters use the sentinel string `__permify_global__` for that enabled dimension. Disabled dimensions are not stored at all.
+
 ## Practical Data Shapes
 
 These shapes work well in real applications:
@@ -131,7 +150,7 @@ These shapes work well in real applications:
 - MongoDB: `{ modelType, modelId, tenantId, teamId, role }`
 - External membership service: `getRoles(model, context)` delegates to the service using both IDs
 
-Make `tenantId` or `teamId` nullable only if you intentionally support global assignments.
+If you design your own adapter, you can use nullable scope columns or your own sentinel value. The built-in adapters use `__permify_global__`.
 
 ## Example Reference
 

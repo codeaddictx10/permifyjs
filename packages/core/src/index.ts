@@ -2,6 +2,7 @@ export type {
   AuthModel,
   AuthUser,           // backward compat alias
   AuthContext,
+  ScopeMode,
   PermissionResolver,
   PermissionWriteResolver,
   AuthOptions,
@@ -18,6 +19,14 @@ export type {
 
 export { AuthEngine, createAuth, defineConfig } from './engine';
 export { MemoryCacheStore, PermissionCache } from './cache';
+export {
+  DEFAULT_SCOPE_MODE,
+  INIT_DEFAULT_SCOPE_MODE,
+  normalizeScopeMode,
+  hasTenantScope,
+  hasTeamScope,
+  getEnabledScopeFields,
+} from './scope';
 export { Role } from './role';
 export {
   bootstrapAccess,
