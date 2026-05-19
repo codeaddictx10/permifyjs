@@ -48,9 +48,13 @@ function registerTypeScriptHook(projectRequire: NodeRequire): (() => void) | nul
   try {
     ts = projectRequire('typescript') as typeof import('typescript');
   } catch {
-    throw new Error(
-      '[permifyjs] Loading TypeScript permify modules requires "typescript" to be installed in the project'
-    );
+    try {
+      ts = require('typescript') as typeof import('typescript');
+    } catch {
+      throw new Error(
+        '[permifyjs] Loading TypeScript permify modules requires "typescript" to be installed in the project or available from @permifyjs/core'
+      );
+    }
   }
 
   const previous = new Map<string, any>();

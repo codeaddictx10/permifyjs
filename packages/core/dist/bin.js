@@ -27484,9 +27484,13 @@ function registerTypeScriptHook(projectRequire) {
   try {
     ts = projectRequire("typescript");
   } catch {
-    throw new Error(
-      '[permifyjs] Loading TypeScript permify modules requires "typescript" to be installed in the project'
-    );
+    try {
+      ts = require("typescript");
+    } catch {
+      throw new Error(
+        '[permifyjs] Loading TypeScript permify modules requires "typescript" to be installed in the project or available from @permifyjs/core'
+      );
+    }
   }
   const previous = /* @__PURE__ */ new Map();
   const handledExtensions = [".ts", ".cts"];

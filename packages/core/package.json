@@ -63,7 +63,6 @@
     "@types/prompts": "^2.4.9",
     "@vitest/ui": "^4.1.2",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   },
   "dependencies": {
@@ -73,6 +72,7 @@
     "fs-extra": "^11.3.4",
     "handlebars": "^4.7.9",
     "ora": "^9.3.0",
-    "prompts": "^2.4.2"
+    "prompts": "^2.4.2",
+    "typescript": "^6.0.2"
   }
 }
