@@ -1,3 +1,4 @@
+---
 "@permifyjs/fastify": minor
 "@permifyjs/typeorm": minor
 ---
