@@ -1,7 +1,8 @@
 import ora from 'ora';
 import { execa } from 'execa';
 import { logger } from '../utils/logger';
-import { detectPrisma, detectMongoose } from '../utils/detect';
+import { detectPrisma, detectMongoose, detectTypeORM } from '../utils/detect';
+import { loadTypeOrmRuntime } from '../utils/typeorm';
 
 export async function runMigrate(
   action: 'migrate' | 'rollback' | 'fresh' | 'status'
@@ -15,6 +16,11 @@ export async function runMigrate(
 
   if (detectMongoose()) {
     await migrateMongoose(action);
+    return;
+  }
+
+  if (detectTypeORM()) {
+    await migrateTypeOrm(action);
     return;
   }
 
@@ -56,5 +62,75 @@ async function migrateMongoose(action: string): Promise<void> {
   } catch (err) {
     spinner.fail('MongoDB setup failed');
     logger.error(String(err));
+  }
+}
+
+async function migrateTypeOrm(action: string): Promise<void> {
+  const spinner = ora('Running TypeORM permifyjs migration...').start();
+  const runtime = await loadTypeOrmRuntime();
+
+  if (!runtime) {
+    spinner.fail('TypeORM runtime could not be loaded');
+    process.exit(1);
+  }
+
+  try {
+    switch (action) {
+      case 'migrate':
+        await runtime.syncPermifySchema(runtime.dataSource, {
+          tableNames: runtime.tableNames,
+          scopeMode: runtime.scopeMode,
+        });
+        spinner.succeed('TypeORM permifyjs tables are ready');
+        break;
+      case 'rollback':
+        await runtime.dropPermifySchema(runtime.dataSource, {
+          tableNames: runtime.tableNames,
+          scopeMode: runtime.scopeMode,
+        });
+        spinner.succeed('Dropped TypeORM permifyjs tables');
+        break;
+      case 'fresh':
+        await runtime.dropPermifySchema(runtime.dataSource, {
+          tableNames: runtime.tableNames,
+          scopeMode: runtime.scopeMode,
+        });
+        await runtime.syncPermifySchema(runtime.dataSource, {
+          tableNames: runtime.tableNames,
+          scopeMode: runtime.scopeMode,
+        });
+        spinner.succeed('Recreated TypeORM permifyjs tables');
+        break;
+      case 'status': {
+        const status = await runtime.getPermifySchemaStatus(runtime.dataSource, {
+          tableNames: runtime.tableNames,
+          scopeMode: runtime.scopeMode,
+        }) as {
+          allPresent: boolean;
+          tables: Record<string, boolean>;
+        };
+
+        if (status.allPresent) {
+          spinner.succeed('All permifyjs TypeORM tables are present');
+        } else {
+          spinner.warn('Some permifyjs TypeORM tables are missing');
+          for (const [table, present] of Object.entries(status.tables)) {
+            logger.step(`${table}: ${present ? 'present' : 'missing'}`);
+          }
+        }
+        break;
+      }
+      default:
+        spinner.warn(`Unknown TypeORM migration action: ${action}`);
+        break;
+    }
+  } catch (err) {
+    spinner.fail('TypeORM migration failed');
+    logger.error(String(err));
+    process.exit(1);
+  } finally {
+    if (runtime.initializedHere) {
+      await runtime.dataSource.destroy?.();
+    }
   }
 }

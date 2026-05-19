@@ -8,6 +8,14 @@ function printFallback(action: string, opts: Record<string, string>): void {
       logger.info(`Roles for ${opts.modelType}:${opts.modelId}`);
       logger.step('Use auth.hasRole() or resolver.getRoles() in your app');
       break;
+    case 'direct-permissions':
+      logger.info(`Direct permissions for ${opts.modelType}:${opts.modelId}`);
+      logger.step('Use auth.getDirectPermissions() in your app');
+      break;
+    case 'permissions-via-roles':
+      logger.info(`Permissions via roles for ${opts.modelType}:${opts.modelId}`);
+      logger.step('Use auth.getPermissionsThroughRoles() in your app');
+      break;
     case 'permissions':
       logger.info(`Permissions for ${opts.modelType}:${opts.modelId}`);
       logger.step('Use auth.getAllPermissions() in your app');
@@ -55,6 +63,34 @@ export async function runUserCommand(
         logger.info(`Permissions for ${opts.modelType}:${opts.modelId}${scopeSuffix}`);
         if (permissions.length === 0) {
           logger.step('No permissions found.');
+          break;
+        }
+
+        for (const permission of permissions) {
+          logger.step(permission);
+        }
+        break;
+      }
+      case 'direct-permissions': {
+        const permissions = await strategy.getDirectPermissions(model, context);
+
+        logger.info(`Direct permissions for ${opts.modelType}:${opts.modelId}${scopeSuffix}`);
+        if (permissions.length === 0) {
+          logger.step('No direct permissions found.');
+          break;
+        }
+
+        for (const permission of permissions) {
+          logger.step(permission);
+        }
+        break;
+      }
+      case 'permissions-via-roles': {
+        const permissions = await strategy.getPermissionsThroughRoles(model, context);
+
+        logger.info(`Permissions via roles for ${opts.modelType}:${opts.modelId}${scopeSuffix}`);
+        if (permissions.length === 0) {
+          logger.step('No inherited permissions found.');
           break;
         }
 

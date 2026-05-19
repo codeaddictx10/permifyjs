@@ -28,6 +28,7 @@ type PrismaResolverFactory = (
   getRoles(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
   getDirectPermissions(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
   getPermissionsThroughRoles(model: AuthModelLike, context?: AuthContext): Promise<string[]>;
+  getRolePermissions(role: string, context?: AuthContext): Promise<string[]>;
 };
 
 type PrismaWriteResolverFactory = (

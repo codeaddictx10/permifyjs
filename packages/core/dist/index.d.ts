@@ -141,10 +141,15 @@ declare class AuthEngine {
     private resolveAll;
     private requireWriteResolver;
     getAllPermissions(model: AuthModel, context?: AuthContext): Promise<string[]>;
+    getRoles(model: AuthModel, context?: AuthContext): Promise<string[]>;
+    getDirectPermissions(model: AuthModel, context?: AuthContext): Promise<string[]>;
+    getPermissionsThroughRoles(model: AuthModel, context?: AuthContext): Promise<string[]>;
+    getRolePermissions(role: string, context?: AuthContext): Promise<string[]>;
     can(model: AuthModel, permission: string, context?: AuthContext): Promise<boolean>;
     canDirectly(model: AuthModel, permission: string, context?: AuthContext): Promise<boolean>;
     canThroughRole(model: AuthModel, permission: string, context?: AuthContext): Promise<boolean>;
     hasRole(model: AuthModel, role: string, context?: AuthContext): Promise<boolean>;
+    hasExactRoles(model: AuthModel, roles: string[], context?: AuthContext): Promise<boolean>;
     role(name: string): Role;
     assignRole(model: AuthModel, role: string, context?: AuthContext): Promise<void>;
     removeRole(model: AuthModel, role: string, context?: AuthContext): Promise<void>;
@@ -192,8 +197,14 @@ declare function seedRoles(auth: RoleSeeder, roles: RoleSeedMap, options?: SeedR
 declare function syncRolesAndPermissions(auth: RoleSeeder, roles: RoleSeedMap, options?: SeedRolesOptions): Promise<void>;
 declare function bootstrapAccess(auth: AccessBootstrapper, options: BootstrapAccessOptions): Promise<void>;
 
+declare function getRoles(auth: AuthEngine, user: AuthUser, context?: AuthContext): Promise<string[]>;
+declare function getDirectPermissions(auth: AuthEngine, user: AuthUser, context?: AuthContext): Promise<string[]>;
+declare function getPermissionsThroughRoles(auth: AuthEngine, user: AuthUser, context?: AuthContext): Promise<string[]>;
+declare function getAllPermissions(auth: AuthEngine, user: AuthUser, context?: AuthContext): Promise<string[]>;
+declare function getRolePermissions(auth: AuthEngine, role: string, context?: AuthContext): Promise<string[]>;
 declare function hasAnyRole(auth: AuthEngine, user: AuthUser, roles: string[], context?: AuthContext): Promise<boolean>;
 declare function hasAllRoles(auth: AuthEngine, user: AuthUser, roles: string[], context?: AuthContext): Promise<boolean>;
+declare function hasExactRoles(auth: AuthEngine, user: AuthUser, roles: string[], context?: AuthContext): Promise<boolean>;
 declare function hasAnyPermission(auth: AuthEngine, user: AuthUser, permissions: string[], context?: AuthContext): Promise<boolean>;
 declare function hasAllPermissions(auth: AuthEngine, user: AuthUser, permissions: string[], context?: AuthContext): Promise<boolean>;
 declare function hasAnyDirectPermission(auth: AuthEngine, user: AuthUser, permissions: string[], context?: AuthContext): Promise<boolean>;
@@ -201,4 +212,4 @@ declare function hasAllDirectPermissions(auth: AuthEngine, user: AuthUser, permi
 declare function hasRoleOrPermission(auth: AuthEngine, user: AuthUser, role: string, permission: string, context?: AuthContext): Promise<boolean>;
 declare function hasAnyRoleOrPermission(auth: AuthEngine, user: AuthUser, roles: string[], permissions: string[], context?: AuthContext): Promise<boolean>;
 
-export { type AdapterType, type AuthContext, AuthEngine, type AuthModel, type AuthOptions, type AuthUser, type BeforeCheckOptions, type BootstrapAccessOptions, type CacheEntry, type CacheOptions, type CacheStore, type CacheValue, DEFAULT_SCOPE_MODE, type FrameworkType, INIT_DEFAULT_SCOPE_MODE, MemoryCacheStore, type PermifyConfig, PermissionCache, type PermissionResolver, type PermissionWriteResolver, Role, type RoleCacheEntry, type RoleSeedDefinition, type RoleSeedMap, type ScopeMode, type SeedRolesOptions, bootstrapAccess, createAuth, defineConfig, defineRoles, getEnabledScopeFields, hasAllDirectPermissions, hasAllPermissions, hasAllRoles, hasAnyDirectPermission, hasAnyPermission, hasAnyRole, hasAnyRoleOrPermission, hasRoleOrPermission, hasTeamScope, hasTenantScope, normalizeScopeMode, seedRoles, syncRolesAndPermissions };
+export { type AdapterType, type AuthContext, AuthEngine, type AuthModel, type AuthOptions, type AuthUser, type BeforeCheckOptions, type BootstrapAccessOptions, type CacheEntry, type CacheOptions, type CacheStore, type CacheValue, DEFAULT_SCOPE_MODE, type FrameworkType, INIT_DEFAULT_SCOPE_MODE, MemoryCacheStore, type PermifyConfig, PermissionCache, type PermissionResolver, type PermissionWriteResolver, Role, type RoleCacheEntry, type RoleSeedDefinition, type RoleSeedMap, type ScopeMode, type SeedRolesOptions, bootstrapAccess, createAuth, defineConfig, defineRoles, getAllPermissions, getDirectPermissions, getEnabledScopeFields, getPermissionsThroughRoles, getRolePermissions, getRoles, hasAllDirectPermissions, hasAllPermissions, hasAllRoles, hasAnyDirectPermission, hasAnyPermission, hasAnyRole, hasAnyRoleOrPermission, hasExactRoles, hasRoleOrPermission, hasTeamScope, hasTenantScope, normalizeScopeMode, seedRoles, syncRolesAndPermissions };

@@ -16141,7 +16141,7 @@ var require_jsonfile = __commonJS({
       return obj;
     }
     var readFile2 = universalify.fromPromise(_readFile);
-    function readFileSync7(file, options = {}) {
+    function readFileSync8(file, options = {}) {
       if (typeof options === "string") {
         options = { encoding: options };
       }
@@ -16173,7 +16173,7 @@ var require_jsonfile = __commonJS({
     }
     module2.exports = {
       readFile: readFile2,
-      readFileSync: readFileSync7,
+      readFileSync: readFileSync8,
       writeFile: writeFile2,
       writeFileSync: writeFileSync2
     };
@@ -20509,22 +20509,10 @@ function detectPrismaSchemaPath(cwd = import_process.default.cwd()) {
   return findNestedPrismaSchema(cwd);
 }
 function detectMongoose(cwd = import_process.default.cwd()) {
-  if (packageHasDependency(cwd, "mongoose")) return true;
-  try {
-    require.resolve("mongoose");
-    return true;
-  } catch {
-    return false;
-  }
+  return packageHasDependency(cwd, "mongoose");
 }
 function detectTypeORM(cwd = import_process.default.cwd()) {
-  if (packageHasDependency(cwd, "typeorm")) return true;
-  try {
-    require.resolve("typeorm");
-    return true;
-  } catch {
-    return false;
-  }
+  return packageHasDependency(cwd, "typeorm");
 }
 function detectInstalledAdapter(cwd = import_process.default.cwd()) {
   if (detectPrisma(cwd)) return "prisma";
@@ -20542,17 +20530,44 @@ function detectInstalledFramework(cwd = import_process.default.cwd()) {
     if (packageHasDependency(cwd, pkg)) {
       return framework;
     }
-    try {
-      require.resolve(pkg);
-      return framework;
-    } catch {
-      continue;
-    }
   }
   return null;
 }
 function detectSrcDir(cwd = import_process.default.cwd()) {
   return (0, import_fs.existsSync)((0, import_path2.join)(cwd, "src")) ? "src" : ".";
+}
+function detectTypeOrmDataSourceImportPath(srcDir = detectSrcDir(), cwd = import_process.default.cwd()) {
+  const sourceRoot = srcDir === "." ? "" : `${srcDir}/`;
+  const candidateBases = [
+    `${sourceRoot}db/data-source`,
+    `${sourceRoot}db/datasource`,
+    `${sourceRoot}data-source`,
+    `${sourceRoot}datasource`,
+    `${sourceRoot}database/data-source`,
+    `${sourceRoot}database/datasource`,
+    `${sourceRoot}lib/data-source`,
+    `${sourceRoot}lib/datasource`,
+    "db/data-source",
+    "db/datasource",
+    "data-source",
+    "datasource"
+  ];
+  const permifyDir = (0, import_path2.join)(cwd, srcDir, "permifyjs");
+  for (const base of candidateBases) {
+    for (const extension of SUPPORTED_SOURCE_EXTENSIONS) {
+      const candidate = (0, import_path2.join)(cwd, `${base}${extension}`);
+      if ((0, import_fs.existsSync)(candidate)) {
+        return toImportSpecifier(permifyDir, candidate);
+      }
+    }
+    for (const extension of SUPPORTED_SOURCE_EXTENSIONS) {
+      const candidate = (0, import_path2.join)(cwd, base, `index${extension}`);
+      if ((0, import_fs.existsSync)(candidate)) {
+        return toImportSpecifier(permifyDir, candidate);
+      }
+    }
+  }
+  return null;
 }
 
 // ../../../../../../Library/pnpm/global/5/node_modules/.pnpm/is-plain-obj@4.1.0/node_modules/is-plain-obj/index.js
@@ -27083,6 +27098,9 @@ async function runInit() {
   const packageManager = detectPackageManager();
   const srcDir = detectSrcDir();
   const detectedPrismaClientImportPath = detectPrismaClientImportPath(srcDir);
+  const detectedTypeOrmDataSourceImportPath = detectTypeOrmDataSourceImportPath(
+    srcDir
+  );
   const answers = await (0, import_prompts.default)(
     [
       {
@@ -27147,6 +27165,18 @@ async function runInit() {
         }
       },
       {
+        type: (_, values) => values.adapter === "typeorm" ? "text" : null,
+        name: "typeormDataSourceImportPath",
+        message: "Import path to your TypeORM dataSource instance (relative to generated permify files)",
+        initial: detectedTypeOrmDataSourceImportPath ?? "../db/data-source",
+        validate: (value) => {
+          if (!value || !value.trim()) {
+            return "TypeORM dataSource import path is required";
+          }
+          return true;
+        }
+      },
+      {
         type: "confirm",
         name: "confirm",
         message: (prev, values) => `Ready to set up permifyjs with ${values.adapter} + ${values.framework}. Continue?`,
@@ -27170,6 +27200,7 @@ async function runInit() {
   const scopeMode = answers.scopeMode;
   const enableCache = answers.enableCache;
   const prismaClientImportPath = answers.prismaClientImportPath?.trim();
+  const typeormDataSourceImportPath = answers.typeormDataSourceImportPath?.trim();
   logger.blank();
   const spinner = ora("Installing packages...").start();
   const packagesToInstall = [
@@ -27211,6 +27242,7 @@ async function runInit() {
         framework,
         models,
         prismaClientImportPath,
+        typeormDataSourceImportPath,
         configImportPath,
         ...getScopeTemplateData(scopeMode)
       }
@@ -27229,6 +27261,7 @@ async function runInit() {
         framework,
         models,
         prismaClientImportPath,
+        typeormDataSourceImportPath,
         configImportPath,
         ...getScopeTemplateData(scopeMode)
       }
@@ -27252,6 +27285,9 @@ async function runInit() {
   if (adapter === "mongoose") {
     await setupMongoose(srcDir, configImportPath, scopeMode);
   }
+  if (adapter === "typeorm") {
+    await setupTypeOrm();
+  }
   logger.blank();
   logger.title("\u2714 permifyjs is ready! \u{1F389}");
   logger.blank();
@@ -27263,6 +27299,9 @@ async function runInit() {
   }
   if (adapter === "mongoose") {
     logger.step("3. Call registerPermifyModels() before connecting to MongoDB");
+  }
+  if (adapter === "typeorm") {
+    logger.step("3. Run: npx permifyjs migrate");
   }
   logger.blank();
   logger.info("Create roles and permissions:");
@@ -27400,55 +27439,12 @@ async function setupMongoose(srcDir, configImportPath, scopeMode) {
     logger.error(String(err));
   }
 }
-
-// src/cli/commands/migrate.ts
-async function runMigrate(action) {
-  logger.blank();
-  if (detectPrisma()) {
-    await migratePrisma(action);
-    return;
-  }
-  if (detectMongoose()) {
-    await migrateMongoose(action);
-    return;
-  }
-  logger.error("No adapter detected. Run npx permifyjs init first.");
-  process.exit(1);
-}
-async function migratePrisma(action) {
-  const spinner = ora("Running Prisma migration...").start();
-  try {
-    const commands = {
-      migrate: ["prisma", "migrate", "dev", "--name", "add_permifyjs"],
-      rollback: ["prisma", "migrate", "reset", "--force"],
-      fresh: ["prisma", "migrate", "reset", "--force"],
-      status: ["prisma", "migrate", "status"]
-    };
-    const [cmd, ...args] = commands[action];
-    await execa(cmd, args, { stdio: "inherit", cwd: process.cwd() });
-    spinner.succeed("Prisma migration complete");
-  } catch (err) {
-    spinner.fail("Prisma migration failed");
-    logger.error(String(err));
-    process.exit(1);
-  }
-}
-async function migrateMongoose(action) {
-  const spinner = ora("Setting up MongoDB collections...").start();
-  try {
-    if (action === "status") {
-      spinner.info("Mongoose creates collections automatically on first write");
-      return;
-    }
-    spinner.succeed("MongoDB collections will be created on first write");
-    logger.info("Make sure registerPermifyModels() is called in your app");
-  } catch (err) {
-    spinner.fail("MongoDB setup failed");
-    logger.error(String(err));
-  }
+async function setupTypeOrm() {
+  logger.info("TypeORM setup uses your exported dataSource instance and the permifyjs table config.");
+  logger.info("Run: npx permifyjs migrate");
 }
 
-// src/cli/utils/mongoose.ts
+// src/cli/utils/typeorm.ts
 var import_fs3 = require("fs");
 
 // src/cli/utils/project.ts
@@ -27591,14 +27587,219 @@ function applyEnvFile(source) {
   }
 }
 
+// src/cli/utils/typeorm.ts
+function findImportedBinding(source, identifier) {
+  const defaultImportPattern = new RegExp(
+    String.raw`import\s+${identifier}\s*(?:,\s*\{[^}]*\})?\s*from\s*['"]([^'"]+)['"]`
+  );
+  const defaultMatch = source.match(defaultImportPattern);
+  if (defaultMatch) {
+    return { specifier: defaultMatch[1], exportName: "default" };
+  }
+  const namedImports = source.matchAll(
+    /import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"]/g
+  );
+  for (const match of namedImports) {
+    const bindings = match[1].split(",").map((binding) => binding.trim());
+    for (const binding of bindings) {
+      if (binding === identifier) {
+        return { specifier: match[2], exportName: identifier };
+      }
+      const aliasMatch = binding.match(
+        /^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/
+      );
+      if (aliasMatch && aliasMatch[2] === identifier) {
+        return { specifier: match[2], exportName: aliasMatch[1] };
+      }
+    }
+  }
+  return null;
+}
+async function loadTypeOrmRuntime(cwd = process.cwd()) {
+  const writeResolverPath = findProjectPermifyModule("writeResolver", cwd);
+  if (!writeResolverPath) return null;
+  const writeResolverSource = (0, import_fs3.readFileSync)(writeResolverPath, "utf-8");
+  if (!writeResolverSource.includes("createTypeOrmWriteResolver")) {
+    return null;
+  }
+  const argumentMatch = writeResolverSource.match(
+    /createTypeOrmWriteResolver\(\s*([A-Za-z_$][\w$]*)\b/
+  );
+  if (!argumentMatch) return null;
+  const importedBinding = findImportedBinding(writeResolverSource, argumentMatch[1]);
+  if (!importedBinding) return null;
+  const dataSourceModulePath = resolveProjectRelativeModule(
+    writeResolverPath,
+    importedBinding.specifier
+  );
+  if (!dataSourceModulePath) {
+    throw new Error(
+      `[permifyjs] Could not resolve TypeORM dataSource module "${importedBinding.specifier}" from ${writeResolverPath}`
+    );
+  }
+  const dataSourceModule = loadProjectModule(
+    dataSourceModulePath,
+    cwd
+  );
+  const dataSource = importedBinding.exportName === "default" ? dataSourceModule.default : dataSourceModule[importedBinding.exportName];
+  if (!dataSource || typeof dataSource !== "object") {
+    throw new Error(
+      `[permifyjs] Failed to load TypeORM dataSource from ${dataSourceModulePath}`
+    );
+  }
+  const typeormPackage = loadProjectPackage("@permifyjs/typeorm", cwd);
+  if (typeof typeormPackage.createPermifyRecord !== "function" || typeof typeormPackage.createTypeOrmResolver !== "function" || typeof typeormPackage.createTypeOrmWriteResolver !== "function" || typeof typeormPackage.getPermifySchemaStatus !== "function" || typeof typeormPackage.syncPermifySchema !== "function" || typeof typeormPackage.dropPermifySchema !== "function" || typeof typeormPackage.getPermifyTableNames !== "function") {
+    throw new Error(
+      "[permifyjs] @permifyjs/typeorm is installed but its runtime helpers could not be loaded"
+    );
+  }
+  let initializedHere = false;
+  if (!dataSource.isInitialized) {
+    await dataSource.initialize?.();
+    initializedHere = true;
+  }
+  const config = loadProjectConfig(cwd);
+  return {
+    dataSource,
+    createPermifyRecord: typeormPackage.createPermifyRecord,
+    createTypeOrmResolver: typeormPackage.createTypeOrmResolver,
+    createTypeOrmWriteResolver: typeormPackage.createTypeOrmWriteResolver,
+    getPermifySchemaStatus: typeormPackage.getPermifySchemaStatus,
+    syncPermifySchema: typeormPackage.syncPermifySchema,
+    dropPermifySchema: typeormPackage.dropPermifySchema,
+    getPermifyTableNames: typeormPackage.getPermifyTableNames,
+    tableNames: config?.tables,
+    scopeMode: config?.scopeMode,
+    initializedHere
+  };
+}
+
+// src/cli/commands/migrate.ts
+async function runMigrate(action) {
+  logger.blank();
+  if (detectPrisma()) {
+    await migratePrisma(action);
+    return;
+  }
+  if (detectMongoose()) {
+    await migrateMongoose(action);
+    return;
+  }
+  if (detectTypeORM()) {
+    await migrateTypeOrm(action);
+    return;
+  }
+  logger.error("No adapter detected. Run npx permifyjs init first.");
+  process.exit(1);
+}
+async function migratePrisma(action) {
+  const spinner = ora("Running Prisma migration...").start();
+  try {
+    const commands = {
+      migrate: ["prisma", "migrate", "dev", "--name", "add_permifyjs"],
+      rollback: ["prisma", "migrate", "reset", "--force"],
+      fresh: ["prisma", "migrate", "reset", "--force"],
+      status: ["prisma", "migrate", "status"]
+    };
+    const [cmd, ...args] = commands[action];
+    await execa(cmd, args, { stdio: "inherit", cwd: process.cwd() });
+    spinner.succeed("Prisma migration complete");
+  } catch (err) {
+    spinner.fail("Prisma migration failed");
+    logger.error(String(err));
+    process.exit(1);
+  }
+}
+async function migrateMongoose(action) {
+  const spinner = ora("Setting up MongoDB collections...").start();
+  try {
+    if (action === "status") {
+      spinner.info("Mongoose creates collections automatically on first write");
+      return;
+    }
+    spinner.succeed("MongoDB collections will be created on first write");
+    logger.info("Make sure registerPermifyModels() is called in your app");
+  } catch (err) {
+    spinner.fail("MongoDB setup failed");
+    logger.error(String(err));
+  }
+}
+async function migrateTypeOrm(action) {
+  const spinner = ora("Running TypeORM permifyjs migration...").start();
+  const runtime = await loadTypeOrmRuntime();
+  if (!runtime) {
+    spinner.fail("TypeORM runtime could not be loaded");
+    process.exit(1);
+  }
+  try {
+    switch (action) {
+      case "migrate":
+        await runtime.syncPermifySchema(runtime.dataSource, {
+          tableNames: runtime.tableNames,
+          scopeMode: runtime.scopeMode
+        });
+        spinner.succeed("TypeORM permifyjs tables are ready");
+        break;
+      case "rollback":
+        await runtime.dropPermifySchema(runtime.dataSource, {
+          tableNames: runtime.tableNames,
+          scopeMode: runtime.scopeMode
+        });
+        spinner.succeed("Dropped TypeORM permifyjs tables");
+        break;
+      case "fresh":
+        await runtime.dropPermifySchema(runtime.dataSource, {
+          tableNames: runtime.tableNames,
+          scopeMode: runtime.scopeMode
+        });
+        await runtime.syncPermifySchema(runtime.dataSource, {
+          tableNames: runtime.tableNames,
+          scopeMode: runtime.scopeMode
+        });
+        spinner.succeed("Recreated TypeORM permifyjs tables");
+        break;
+      case "status": {
+        const status = await runtime.getPermifySchemaStatus(runtime.dataSource, {
+          tableNames: runtime.tableNames,
+          scopeMode: runtime.scopeMode
+        });
+        if (status.allPresent) {
+          spinner.succeed("All permifyjs TypeORM tables are present");
+        } else {
+          spinner.warn("Some permifyjs TypeORM tables are missing");
+          for (const [table, present] of Object.entries(status.tables)) {
+            logger.step(`${table}: ${present ? "present" : "missing"}`);
+          }
+        }
+        break;
+      }
+      default:
+        spinner.warn(`Unknown TypeORM migration action: ${action}`);
+        break;
+    }
+  } catch (err) {
+    spinner.fail("TypeORM migration failed");
+    logger.error(String(err));
+    process.exit(1);
+  } finally {
+    if (runtime.initializedHere) {
+      await runtime.dataSource.destroy?.();
+    }
+  }
+}
+
+// src/cli/utils/strategy.ts
+var import_node_crypto = require("crypto");
+
 // src/cli/utils/mongoose.ts
+var import_fs4 = require("fs");
 function resolveMongoUri() {
   return process.env.MONGODB_URI ?? process.env.MONGO_URL ?? process.env.MONGO_URI ?? process.env.MONGODB_URL ?? process.env.DATABASE_URL ?? null;
 }
 async function loadMongooseRuntime(cwd = process.cwd()) {
   const writeResolverPath = findProjectPermifyModule("writeResolver", cwd);
   if (!writeResolverPath) return null;
-  const writeResolverSource = (0, import_fs3.readFileSync)(writeResolverPath, "utf-8");
+  const writeResolverSource = (0, import_fs4.readFileSync)(writeResolverPath, "utf-8");
   if (!writeResolverSource.includes("createMongooseWriteResolver")) {
     return null;
   }
@@ -27627,8 +27828,8 @@ async function loadMongooseRuntime(cwd = process.cwd()) {
 }
 
 // src/cli/utils/prisma.ts
-var import_fs4 = require("fs");
-function findImportedBinding(source, identifier) {
+var import_fs5 = require("fs");
+function findImportedBinding2(source, identifier) {
   const defaultImportPattern = new RegExp(
     String.raw`import\s+${identifier}\s*(?:,\s*\{[^}]*\})?\s*from\s*['"]([^'"]+)['"]`
   );
@@ -27658,7 +27859,7 @@ function findImportedBinding(source, identifier) {
 async function loadPrismaRuntime(cwd = process.cwd()) {
   const writeResolverPath = findProjectPermifyModule("writeResolver", cwd);
   if (!writeResolverPath) return null;
-  const writeResolverSource = (0, import_fs4.readFileSync)(writeResolverPath, "utf-8");
+  const writeResolverSource = (0, import_fs5.readFileSync)(writeResolverPath, "utf-8");
   if (!writeResolverSource.includes("createPrismaWriteResolver")) {
     return null;
   }
@@ -27666,7 +27867,7 @@ async function loadPrismaRuntime(cwd = process.cwd()) {
     /createPrismaWriteResolver\(\s*([A-Za-z_$][\w$]*)\b/
   );
   if (!argumentMatch) return null;
-  const importedBinding = findImportedBinding(writeResolverSource, argumentMatch[1]);
+  const importedBinding = findImportedBinding2(writeResolverSource, argumentMatch[1]);
   if (!importedBinding) return null;
   const dbModulePath = resolveProjectRelativeModule(
     writeResolverPath,
@@ -27707,11 +27908,6 @@ async function loadPrismaRuntime(cwd = process.cwd()) {
 // src/cli/utils/strategy.ts
 async function resolveCliAdapterStrategy(cwd = process.cwd()) {
   const adapter = detectInstalledAdapter(cwd);
-  if (adapter === "typeorm") {
-    throw new Error(
-      "[permifyjs] TypeORM CLI execution is not available yet because the @permifyjs/typeorm adapter package is not implemented in this repo"
-    );
-  }
   if (adapter === "prisma") {
     const runtime = await loadPrismaRuntime(cwd);
     return runtime ? createPrismaStrategy(runtime) : null;
@@ -27719,6 +27915,10 @@ async function resolveCliAdapterStrategy(cwd = process.cwd()) {
   if (adapter === "mongoose") {
     const runtime = await loadMongooseRuntime(cwd);
     return runtime ? createMongooseStrategy(runtime) : null;
+  }
+  if (adapter === "typeorm") {
+    const runtime = await loadTypeOrmRuntime(cwd);
+    return runtime ? createTypeOrmStrategy(runtime) : null;
   }
   return null;
 }
@@ -27728,18 +27928,20 @@ function createPrismaStrategy(runtime) {
   const writeResolver = runtime.createPrismaWriteResolver(runtime.prisma, { scopeMode });
   return {
     scopeMode,
-    async createRole(name) {
-      const existing = await runtime.prisma.permifyRole?.findUnique({
-        where: { name }
+    async createRole(name, context) {
+      const scope = context ?? {};
+      const existing = await runtime.prisma.permifyRole?.findFirst({
+        where: { name, ...scope }
       });
       if (existing) return "exists";
       await runtime.prisma.permifyRole?.create({
-        data: { name }
+        data: { name, ...scope }
       });
       return "created";
     },
-    async listRoles() {
+    async listRoles(context) {
       const roles = await runtime.prisma.permifyRole?.findMany({
+        where: context ?? {},
         orderBy: { name: "asc" }
       }) ?? [];
       return roles.map((role) => role.name);
@@ -27772,6 +27974,18 @@ function createPrismaStrategy(runtime) {
     async getRoles(model, context) {
       return resolver.getRoles(model, context);
     },
+    async getRolePermissions(role, context) {
+      return runtime.createPrismaResolver(runtime.prisma, { scopeMode }).getRolePermissions(
+        role,
+        context
+      );
+    },
+    async getDirectPermissions(model, context) {
+      return resolver.getDirectPermissions(model, context);
+    },
+    async getPermissionsThroughRoles(model, context) {
+      return resolver.getPermissionsThroughRoles(model, context);
+    },
     async getPermissions(model, context) {
       const [directPermissions, permissionsThroughRoles] = await Promise.all([
         resolver.getDirectPermissions(model, context),
@@ -27800,14 +28014,14 @@ function createMongooseStrategy(runtime) {
   const Permission = runtime.connection.model("PermifyPermission");
   return {
     scopeMode,
-    async createRole(name) {
-      const existing = await Role.findOne({ name }).lean();
+    async createRole(name, context) {
+      const existing = await Role.findOne({ name, ...context ?? {} }).lean();
       if (existing) return "exists";
-      await Role.create({ name });
+      await Role.create({ name, ...context ?? {} });
       return "created";
     },
-    async listRoles() {
-      const roles = await Role.find({}).sort({ name: 1 }).select({ name: 1, _id: 0 }).lean();
+    async listRoles(context) {
+      const roles = await Role.find({ ...context ?? {} }).sort({ name: 1 }).select({ name: 1, _id: 0 }).lean();
       return roles.map((role) => role.name);
     },
     async assignRole(model, role, context) {
@@ -27832,6 +28046,15 @@ function createMongooseStrategy(runtime) {
     async getRoles(model, context) {
       return resolver.getRoles(model, context);
     },
+    async getRolePermissions(role, context) {
+      return resolver.getRolePermissions(role, context);
+    },
+    async getDirectPermissions(model, context) {
+      return resolver.getDirectPermissions(model, context);
+    },
+    async getPermissionsThroughRoles(model, context) {
+      return resolver.getPermissionsThroughRoles(model, context);
+    },
     async getPermissions(model, context) {
       const [directPermissions, permissionsThroughRoles] = await Promise.all([
         resolver.getDirectPermissions(model, context),
@@ -27841,6 +28064,87 @@ function createMongooseStrategy(runtime) {
     },
     async dispose() {
       await runtime.connection.close();
+    }
+  };
+}
+function createTypeOrmStrategy(runtime) {
+  const scopeMode = normalizeScopeMode(runtime.scopeMode);
+  const resolver = runtime.createTypeOrmResolver(runtime.dataSource, {
+    tableNames: runtime.tableNames,
+    scopeMode
+  });
+  const writeResolver = runtime.createTypeOrmWriteResolver(runtime.dataSource, {
+    tableNames: runtime.tableNames,
+    scopeMode
+  });
+  const tableNames = runtime.getPermifyTableNames(runtime.tableNames);
+  return {
+    scopeMode,
+    async createRole(name, context) {
+      const query = runtime.dataSource.createQueryBuilder().select("role.id", "id").from(tableNames.roles, "role").where("role.name = :name", { name });
+      for (const [field, value] of Object.entries(context ?? {})) {
+        query.andWhere(`role.${field} = :${field}`, { [field]: value });
+      }
+      const existing = await query.getRawOne();
+      if (existing?.id) return "exists";
+      await runtime.dataSource.createQueryBuilder().insert().into(tableNames.roles).values({
+        id: (0, import_node_crypto.randomUUID)(),
+        name,
+        ...context ?? {}
+      }).execute();
+      return "created";
+    },
+    async listRoles(context) {
+      const query = runtime.dataSource.createQueryBuilder().select("role.name", "name").from(tableNames.roles, "role").orderBy("role.name", "ASC");
+      for (const [field, value] of Object.entries(context ?? {})) {
+        query.andWhere(`role.${field} = :${field}`, { [field]: value });
+      }
+      const rows = await query.getRawMany();
+      return rows.map((row) => row.name);
+    },
+    async assignRole(model, role, context) {
+      await writeResolver.assignRole(model, role, context);
+    },
+    async removeRole(model, role, context) {
+      await writeResolver.removeRole(model, role, context);
+    },
+    async createPermission(name) {
+      return runtime.createPermifyRecord(
+        runtime.dataSource,
+        tableNames.permissions,
+        name
+      );
+    },
+    async listPermissions() {
+      const rows = await runtime.dataSource.createQueryBuilder().select("permission.name", "name").from(tableNames.permissions, "permission").orderBy("permission.name", "ASC").getRawMany();
+      return rows.map((row) => row.name);
+    },
+    async assignPermissionToRole(role, permission, context) {
+      await writeResolver.assignPermissionToRole(role, permission, context);
+    },
+    async getRoles(model, context) {
+      return resolver.getRoles(model, context);
+    },
+    async getRolePermissions(role, context) {
+      return resolver.getRolePermissions(role, context);
+    },
+    async getDirectPermissions(model, context) {
+      return resolver.getDirectPermissions(model, context);
+    },
+    async getPermissionsThroughRoles(model, context) {
+      return resolver.getPermissionsThroughRoles(model, context);
+    },
+    async getPermissions(model, context) {
+      const [directPermissions, permissionsThroughRoles] = await Promise.all([
+        resolver.getDirectPermissions(model, context),
+        resolver.getPermissionsThroughRoles(model, context)
+      ]);
+      return [.../* @__PURE__ */ new Set([...directPermissions, ...permissionsThroughRoles])].sort();
+    },
+    async dispose() {
+      if (runtime.initializedHere) {
+        await runtime.dataSource.destroy?.();
+      }
     }
   };
 }
@@ -27931,21 +28235,21 @@ async function runRoleCommand(action, opts) {
     const scopeSuffix = formatCliScope(strategy.scopeMode, context);
     switch (action) {
       case "create": {
-        const result = await strategy.createRole(opts.name);
+        const result = await strategy.createRole(opts.name, context);
         if (result === "exists") {
-          logger.warn(`Role already exists: ${opts.name}`);
+          logger.warn(`Role already exists: ${opts.name}${scopeSuffix}`);
           break;
         }
-        logger.success(`Created role: ${opts.name}`);
+        logger.success(`Created role: ${opts.name}${scopeSuffix}`);
         break;
       }
       case "list": {
-        const roles = await strategy.listRoles();
+        const roles = await strategy.listRoles(context);
         if (roles.length === 0) {
-          logger.info("No roles found.");
+          logger.info(`No roles found${scopeSuffix}.`);
           break;
         }
-        logger.info("Roles:");
+        logger.info(`Roles${scopeSuffix}:`);
         for (const role of roles) {
           logger.step(role);
         }
@@ -28053,6 +28357,14 @@ function printFallback3(action, opts) {
       logger.info(`Roles for ${opts.modelType}:${opts.modelId}`);
       logger.step("Use auth.hasRole() or resolver.getRoles() in your app");
       break;
+    case "direct-permissions":
+      logger.info(`Direct permissions for ${opts.modelType}:${opts.modelId}`);
+      logger.step("Use auth.getDirectPermissions() in your app");
+      break;
+    case "permissions-via-roles":
+      logger.info(`Permissions via roles for ${opts.modelType}:${opts.modelId}`);
+      logger.step("Use auth.getPermissionsThroughRoles() in your app");
+      break;
     case "permissions":
       logger.info(`Permissions for ${opts.modelType}:${opts.modelId}`);
       logger.step("Use auth.getAllPermissions() in your app");
@@ -28096,12 +28408,131 @@ async function runUserCommand(action, opts) {
         }
         break;
       }
+      case "direct-permissions": {
+        const permissions = await strategy.getDirectPermissions(model, context);
+        logger.info(`Direct permissions for ${opts.modelType}:${opts.modelId}${scopeSuffix}`);
+        if (permissions.length === 0) {
+          logger.step("No direct permissions found.");
+          break;
+        }
+        for (const permission of permissions) {
+          logger.step(permission);
+        }
+        break;
+      }
+      case "permissions-via-roles": {
+        const permissions = await strategy.getPermissionsThroughRoles(model, context);
+        logger.info(`Permissions via roles for ${opts.modelType}:${opts.modelId}${scopeSuffix}`);
+        if (permissions.length === 0) {
+          logger.step("No inherited permissions found.");
+          break;
+        }
+        for (const permission of permissions) {
+          logger.step(permission);
+        }
+        break;
+      }
       default:
         logger.warn(`Unknown user action: ${action}`);
         break;
     }
   } finally {
     await strategy.dispose();
+  }
+  logger.blank();
+}
+
+// src/cli/commands/matrix.ts
+async function runMatrixCommand(opts) {
+  logger.blank();
+  const strategy = await resolveCliAdapterStrategy();
+  if (!strategy) {
+    logger.info("matrix \u2014 connect this to your resolver to execute");
+    logger.step("Use auth.role(name).getPermissions() and your DB client in app code");
+    logger.blank();
+    return;
+  }
+  try {
+    const context = getCliScopeContext(strategy.scopeMode, opts);
+    const scopeSuffix = formatCliScope(strategy.scopeMode, context);
+    const [roles, permissions] = await Promise.all([
+      strategy.listRoles(context),
+      strategy.listPermissions()
+    ]);
+    logger.info(`Role/permission matrix${scopeSuffix}:`);
+    if (roles.length === 0) {
+      logger.step("No roles found.");
+    }
+    for (const role of roles) {
+      const rolePermissions = await strategy.getRolePermissions(role, context);
+      logger.step(role);
+      if (rolePermissions.length === 0) {
+        logger.info("  permissions: none");
+        continue;
+      }
+      logger.info(`  permissions: ${rolePermissions.join(", ")}`);
+    }
+    if (permissions.length > 0) {
+      logger.blank();
+      logger.info("Known permissions:");
+      for (const permission of permissions) {
+        logger.step(permission);
+      }
+    }
+  } finally {
+    await strategy.dispose();
+  }
+  logger.blank();
+}
+
+// src/cli/utils/auth.ts
+function loadProjectAuth(cwd = process.cwd()) {
+  const indexPath = findProjectPermifyModule("index", cwd);
+  if (!indexPath) return null;
+  const mod = loadProjectModule(indexPath, cwd);
+  const candidates = [
+    mod.auth,
+    mod.default?.auth,
+    mod.default
+  ];
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "object") {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+// src/cli/commands/cache.ts
+async function runCacheCommand(action) {
+  logger.blank();
+  const auth = loadProjectAuth();
+  if (!auth) {
+    logger.warn("Could not load src/permifyjs/index auth export.");
+    logger.step("Cache reset requires the generated auth module to be loadable in this project.");
+    logger.blank();
+    return;
+  }
+  if (typeof auth.clearCache !== "function") {
+    logger.warn("Loaded auth export does not expose clearCache().");
+    logger.blank();
+    return;
+  }
+  switch (action) {
+    case "clear": {
+      const enabled = auth.isCacheEnabled?.() ?? false;
+      const before = auth.cacheSize?.() ?? 0;
+      await auth.clearCache();
+      if (!enabled) {
+        logger.info("Cache is not enabled for this auth instance.");
+      } else {
+        logger.success(`Cleared cache${before > 0 ? ` (${before} entries)` : ""}.`);
+      }
+      break;
+    }
+    default:
+      logger.warn(`Unknown cache action: ${action}`);
+      break;
   }
   logger.blank();
 }
@@ -28115,14 +28546,18 @@ function createProgram() {
   program2.command("migrate:rollback").description("Rollback last migration").action(() => runMigrate("rollback"));
   program2.command("migrate:fresh").description("Drop all tables and re-run migrations").action(() => runMigrate("fresh"));
   program2.command("migrate:status").description("Show migration status").action(() => runMigrate("status"));
-  program2.command("role:create <name>").description("Create a new role").action((name) => runRoleCommand("create", { name }));
-  program2.command("role:list").description("List all roles").action(() => runRoleCommand("list", {}));
+  program2.command("role:create <name>").description("Create a new role").option("--tenant-id <tenantId>", "Tenant ID for scoped role creation").option("--team-id <teamId>", "Team ID for scoped role creation").action((name, opts) => runRoleCommand("create", { name, ...opts }));
+  program2.command("role:list").description("List all roles").option("--tenant-id <tenantId>", "Tenant ID for scoped role listing").option("--team-id <teamId>", "Team ID for scoped role listing").action((opts) => runRoleCommand("list", opts));
   program2.command("role:assign").description("Assign a role to a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").requiredOption("--role <role>", "Role name").option("--tenant-id <tenantId>", "Tenant ID for scoped assignments").option("--team-id <teamId>", "Team ID for scoped assignments").action((opts) => runRoleCommand("assign", opts));
   program2.command("role:remove").description("Remove a role from a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").requiredOption("--role <role>", "Role name").option("--tenant-id <tenantId>", "Tenant ID for scoped assignments").option("--team-id <teamId>", "Team ID for scoped assignments").action((opts) => runRoleCommand("remove", opts));
   program2.command("permission:create <name>").description("Create a new permission").action((name) => runPermissionCommand("create", { name }));
   program2.command("permission:list").description("List all permissions").action(() => runPermissionCommand("list", {}));
   program2.command("permission:assign").description("Assign a permission to a role").requiredOption("--role <role>", "Role name").requiredOption("--permission <permission>", "Permission name").option("--tenant-id <tenantId>", "Tenant ID for scoped assignments").option("--team-id <teamId>", "Team ID for scoped assignments").action((opts) => runPermissionCommand("assign", opts));
+  program2.command("matrix").description("Show the current role/permission matrix").option("--tenant-id <tenantId>", "Tenant ID for scoped role matrices").option("--team-id <teamId>", "Team ID for scoped role matrices").action((opts) => runMatrixCommand(opts));
+  program2.command("cache:clear").description("Clear the auth cache for the current project auth module").action(() => runCacheCommand("clear"));
   program2.command("user:roles").description("List roles for a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").option("--tenant-id <tenantId>", "Tenant ID for scoped lookups").option("--team-id <teamId>", "Team ID for scoped lookups").action((opts) => runUserCommand("roles", opts));
+  program2.command("user:direct-permissions").description("List direct permissions for a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").option("--tenant-id <tenantId>", "Tenant ID for scoped lookups").option("--team-id <teamId>", "Team ID for scoped lookups").action((opts) => runUserCommand("direct-permissions", opts));
+  program2.command("user:permissions-via-roles").description("List inherited permissions for a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").option("--tenant-id <tenantId>", "Tenant ID for scoped lookups").option("--team-id <teamId>", "Team ID for scoped lookups").action((opts) => runUserCommand("permissions-via-roles", opts));
   program2.command("user:permissions").description("List permissions for a model").requiredOption("--model-id <id>", "Model ID").option("--model-type <type>", "Model type", "User").option("--tenant-id <tenantId>", "Tenant ID for scoped lookups").option("--team-id <teamId>", "Team ID for scoped lookups").action((opts) => runUserCommand("permissions", opts));
   return program2;
 }

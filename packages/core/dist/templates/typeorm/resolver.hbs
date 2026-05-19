@@ -1,0 +1,9 @@
+import type { PermissionResolver } from '@permifyjs/core';
+import config from '{{configImportPath}}';
+import { createTypeOrmResolver } from '@permifyjs/typeorm';
+import { dataSource } from '{{typeormDataSourceImportPath}}';
+
+export const resolver: PermissionResolver = createTypeOrmResolver(dataSource, {
+  scopeMode: config.scopeMode,
+  tableNames: config.tables,
+});

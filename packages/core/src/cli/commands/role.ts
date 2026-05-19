@@ -42,23 +42,23 @@ export async function runRoleCommand(
 
     switch (action) {
       case 'create': {
-        const result = await strategy.createRole(opts.name);
+        const result = await strategy.createRole(opts.name, context);
         if (result === 'exists') {
-          logger.warn(`Role already exists: ${opts.name}`);
+          logger.warn(`Role already exists: ${opts.name}${scopeSuffix}`);
           break;
         }
 
-        logger.success(`Created role: ${opts.name}`);
+        logger.success(`Created role: ${opts.name}${scopeSuffix}`);
         break;
       }
       case 'list': {
-        const roles = await strategy.listRoles();
+        const roles = await strategy.listRoles(context);
         if (roles.length === 0) {
-          logger.info('No roles found.');
+          logger.info(`No roles found${scopeSuffix}.`);
           break;
         }
 
-        logger.info('Roles:');
+        logger.info(`Roles${scopeSuffix}:`);
         for (const role of roles) {
           logger.step(role);
         }

@@ -185,6 +185,122 @@ describe('runInit()', () => {
     ).toContain("registerPermifyModels({ scopeMode: config.scopeMode });");
   });
 
+  it('only offers shipped adapters and frameworks during init', async () => {
+    const cwd = createTempDir();
+    mkdirSync(join(cwd, 'src', 'db'), { recursive: true });
+    mkdirSync(join(cwd, 'prisma'), { recursive: true });
+
+    writeFileSync(
+      join(cwd, 'package.json'),
+      JSON.stringify(
+        {
+          name: 'test-app',
+          dependencies: {
+            typeorm: '^0.3.0',
+            fastify: '^5.0.0',
+          },
+        },
+        null,
+        2
+      )
+    );
+    writeFileSync(join(cwd, 'tsconfig.json'), JSON.stringify({ compilerOptions: {} }));
+    writeFileSync(join(cwd, 'src/db/client.ts'), 'export const prisma = {};');
+    writeFileSync(
+      join(cwd, 'prisma/schema.prisma'),
+      'generator client { provider = "prisma-client-js" }\ndatasource db { provider = "sqlite" url = env("DATABASE_URL") }'
+    );
+
+    let promptQuestions: any[] = [];
+    promptsMock.mockImplementation(async (questions: any) => {
+      promptQuestions = Array.isArray(questions) ? questions : [questions];
+      return {
+        adapter: 'prisma',
+        framework: 'express',
+        models: ['User'],
+        scopeMode: 'global',
+        enableCache: false,
+        prismaClientImportPath: '../db/client',
+        confirm: true,
+      };
+    });
+
+    installPackagesMock.mockResolvedValue(undefined);
+    process.chdir(cwd);
+
+    vi.resetModules();
+    const { runInit } = await import('../cli/commands/init');
+    await runInit();
+
+    const adapterChoices = promptQuestions[0]?.choices?.map((choice: any) => choice.value);
+    const frameworkChoices = promptQuestions[1]?.choices?.map((choice: any) => choice.value);
+
+    expect(adapterChoices).toEqual(['prisma', 'mongoose', 'typeorm']);
+    expect(frameworkChoices).toEqual(['express', 'nestjs', 'fastify']);
+  });
+
+  it('uses the provided typeorm data source import path in generated files', async () => {
+    const cwd = createTempDir();
+    mkdirSync(join(cwd, 'src', 'db'), { recursive: true });
+
+    writeFileSync(
+      join(cwd, 'package.json'),
+      JSON.stringify({
+        name: 'test-app',
+        dependencies: {
+          typeorm: '^0.3.0',
+        },
+      })
+    );
+    writeFileSync(join(cwd, 'tsconfig.json'), JSON.stringify({ compilerOptions: {} }));
+    writeFileSync(join(cwd, 'src/db/data-source.ts'), 'export const dataSource = {};');
+
+    promptsMock.mockResolvedValue({
+      adapter: 'typeorm',
+      framework: 'express',
+      models: ['User'],
+      scopeMode: 'team',
+      enableCache: false,
+      typeormDataSourceImportPath: '../db/data-source',
+      confirm: true,
+    });
+
+    installPackagesMock.mockResolvedValue(undefined);
+    process.chdir(cwd);
+
+    vi.resetModules();
+    const { runInit } = await import('../cli/commands/init');
+    await runInit();
+
+    expect(installPackagesMock).toHaveBeenCalledTimes(1);
+    expect(installPackagesMock.mock.calls[0]?.[0]).toEqual([
+      '@permifyjs/core',
+      '@permifyjs/express',
+      '@permifyjs/typeorm',
+    ]);
+
+    const resolverContents = readFileSync(
+      join(cwd, 'src/permifyjs/resolver.ts'),
+      'utf-8'
+    );
+    const writeResolverContents = readFileSync(
+      join(cwd, 'src/permifyjs/writeResolver.ts'),
+      'utf-8'
+    );
+    const configContents = readFileSync(join(cwd, 'permifyjs.config.ts'), 'utf-8');
+
+    expect(configContents).toContain("adapter: 'typeorm'");
+    expect(configContents).toContain("scopeMode: 'team'");
+    expect(resolverContents).toContain(`import { dataSource } from '../db/data-source';`);
+    expect(resolverContents).toContain(`import { createTypeOrmResolver } from '@permifyjs/typeorm';`);
+    expect(resolverContents).toContain('tableNames: config.tables');
+    expect(writeResolverContents).toContain(
+      `import { createTypeOrmWriteResolver } from '@permifyjs/typeorm';`
+    );
+    expect(writeResolverContents).toContain(`import { dataSource } from '../db/data-source';`);
+    expect(writeResolverContents).toContain('scopeMode: config.scopeMode');
+  });
+
   it('generates tenant-only prisma schema and resolver config wiring when requested', async () => {
     const cwd = createTempDir();
     mkdirSync(join(cwd, 'src', 'db'), { recursive: true });

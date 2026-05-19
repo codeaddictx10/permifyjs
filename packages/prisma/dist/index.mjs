@@ -22,6 +22,19 @@ function normalizeScope(scopeMode, context) {
 function getScopedCompoundKeyName(prefix, suffix, scopeMode) {
   return [...prefix, ...getEnabledScopeFields(scopeMode), ...suffix].join("_");
 }
+function getScopedRoleWhereUnique(name, scopeMode, context) {
+  const scope = normalizeScope(scopeMode, context);
+  const keyName = getScopedCompoundKeyName(["name"], [], scopeMode);
+  if (keyName === "name") {
+    return { name };
+  }
+  return {
+    [keyName]: {
+      name,
+      ...scope
+    }
+  };
+}
 
 // src/resolver.ts
 function createPrismaResolver(prisma, options = {}) {
@@ -71,11 +84,11 @@ function createPrismaResolver(prisma, options = {}) {
       return [...new Set(permissions)];
     },
     getRolePermissions: async (role, context) => {
-      const scope = normalizeScope(options.scopeMode, context);
       const roleRecord = await prisma.permifyRole.findUnique({
-        where: { name: role }
+        where: getScopedRoleWhereUnique(role, options.scopeMode, context)
       });
       if (!roleRecord) return [];
+      const scope = normalizeScope(options.scopeMode, context);
       const result = await prisma.permifyRoleHasPermission.findMany({
         where: {
           roleId: roleRecord.id,
@@ -93,10 +106,10 @@ function createPrismaWriteResolver(prisma, options = {}) {
   return {
     // ─── Model role assignment ──────────────────────────────────────
     assignRole: async (model, role, context) => {
-      const scope = normalizeScope(options.scopeMode, context);
       const roleRecord = await prisma.permifyRole.findUniqueOrThrow({
-        where: { name: role }
+        where: getScopedRoleWhereUnique(role, options.scopeMode, context)
       });
+      const scope = normalizeScope(options.scopeMode, context);
       await prisma.permifyModelHasRole.upsert({
         where: {
           [getScopedCompoundKeyName(
@@ -122,7 +135,7 @@ function createPrismaWriteResolver(prisma, options = {}) {
     removeRole: async (model, role, context) => {
       const scope = normalizeScope(options.scopeMode, context);
       const roleRecord = await prisma.permifyRole.findUnique({
-        where: { name: role }
+        where: getScopedRoleWhereUnique(role, options.scopeMode, context)
       });
       if (!roleRecord) return;
       await prisma.permifyModelHasRole.deleteMany({
@@ -137,7 +150,7 @@ function createPrismaWriteResolver(prisma, options = {}) {
     syncRoles: async (model, roles, context) => {
       const scope = normalizeScope(options.scopeMode, context);
       const roleRecords = await prisma.permifyRole.findMany({
-        where: { name: { in: roles } }
+        where: { name: { in: roles }, ...scope }
       });
       await prisma.permifyModelHasRole.deleteMany({
         where: {
@@ -223,7 +236,9 @@ function createPrismaWriteResolver(prisma, options = {}) {
     assignPermissionToRole: async (role, permission, context) => {
       const scope = normalizeScope(options.scopeMode, context);
       const [roleRecord, permRecord] = await Promise.all([
-        prisma.permifyRole.findUniqueOrThrow({ where: { name: role } }),
+        prisma.permifyRole.findUniqueOrThrow({
+          where: getScopedRoleWhereUnique(role, options.scopeMode, context)
+        }),
         prisma.permifyPermission.findUniqueOrThrow({ where: { name: permission } })
       ]);
       await prisma.permifyRoleHasPermission.upsert({
@@ -249,7 +264,9 @@ function createPrismaWriteResolver(prisma, options = {}) {
     revokePermissionFromRole: async (role, permission, context) => {
       const scope = normalizeScope(options.scopeMode, context);
       const [roleRecord, permRecord] = await Promise.all([
-        prisma.permifyRole.findUnique({ where: { name: role } }),
+        prisma.permifyRole.findUnique({
+          where: getScopedRoleWhereUnique(role, options.scopeMode, context)
+        }),
         prisma.permifyPermission.findUnique({ where: { name: permission } })
       ]);
       if (!roleRecord || !permRecord) return;
@@ -264,7 +281,9 @@ function createPrismaWriteResolver(prisma, options = {}) {
     syncRolePermissions: async (role, permissions, context) => {
       const scope = normalizeScope(options.scopeMode, context);
       const [roleRecord, permRecords] = await Promise.all([
-        prisma.permifyRole.findUniqueOrThrow({ where: { name: role } }),
+        prisma.permifyRole.findUniqueOrThrow({
+          where: getScopedRoleWhereUnique(role, options.scopeMode, context)
+        }),
         prisma.permifyPermission.findMany({
           where: { name: { in: permissions } }
         })

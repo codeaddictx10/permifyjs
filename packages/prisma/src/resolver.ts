@@ -4,7 +4,11 @@ import type {
   AuthContext,
 } from '@permifyjs/core';
 import { PrismaClient } from '@prisma/client/extension';
-import { normalizeScope, type ScopeMode } from './scope';
+import {
+  getScopedRoleWhereUnique,
+  normalizeScope,
+  type ScopeMode,
+} from './scope';
 
 export interface PrismaResolverOptions {
   scopeMode?: ScopeMode;
@@ -70,12 +74,12 @@ export function createPrismaResolver(
     },
 
     getRolePermissions: async (role: string, context?: AuthContext) => {
-      const scope = normalizeScope(options.scopeMode, context);
       const roleRecord = await (prisma as any).permifyRole.findUnique({
-        where: { name: role, ...scope },
+        where: getScopedRoleWhereUnique(role, options.scopeMode, context),
       });
       if (!roleRecord) return [];
 
+      const scope = normalizeScope(options.scopeMode, context);
       const result = await (prisma as any).permifyRoleHasPermission.findMany({
         where: {
           roleId: roleRecord.id,

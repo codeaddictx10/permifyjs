@@ -4,6 +4,8 @@ import { runMigrate } from './commands/migrate';
 import { runRoleCommand } from './commands/role';
 import { runPermissionCommand } from './commands/permission';
 import { runUserCommand } from './commands/user';
+import { runMatrixCommand } from './commands/matrix';
+import { runCacheCommand } from './commands/cache';
 
 export function createProgram(): Command {
   const program = new Command();
@@ -41,12 +43,16 @@ export function createProgram(): Command {
   program
     .command('role:create <name>')
     .description('Create a new role')
-    .action((name) => runRoleCommand('create', { name }));
+    .option('--tenant-id <tenantId>', 'Tenant ID for scoped role creation')
+    .option('--team-id <teamId>', 'Team ID for scoped role creation')
+    .action((name, opts) => runRoleCommand('create', { name, ...opts }));
 
   program
     .command('role:list')
     .description('List all roles')
-    .action(() => runRoleCommand('list', {}));
+    .option('--tenant-id <tenantId>', 'Tenant ID for scoped role listing')
+    .option('--team-id <teamId>', 'Team ID for scoped role listing')
+    .action((opts) => runRoleCommand('list', opts));
 
   program
     .command('role:assign')
@@ -88,6 +94,18 @@ export function createProgram(): Command {
     .action((opts) => runPermissionCommand('assign', opts));
 
   program
+    .command('matrix')
+    .description('Show the current role/permission matrix')
+    .option('--tenant-id <tenantId>', 'Tenant ID for scoped role matrices')
+    .option('--team-id <teamId>', 'Team ID for scoped role matrices')
+    .action((opts) => runMatrixCommand(opts));
+
+  program
+    .command('cache:clear')
+    .description('Clear the auth cache for the current project auth module')
+    .action(() => runCacheCommand('clear'));
+
+  program
     .command('user:roles')
     .description('List roles for a model')
     .requiredOption('--model-id <id>', 'Model ID')
@@ -95,6 +113,24 @@ export function createProgram(): Command {
     .option('--tenant-id <tenantId>', 'Tenant ID for scoped lookups')
     .option('--team-id <teamId>', 'Team ID for scoped lookups')
     .action((opts) => runUserCommand('roles', opts));
+
+  program
+    .command('user:direct-permissions')
+    .description('List direct permissions for a model')
+    .requiredOption('--model-id <id>', 'Model ID')
+    .option('--model-type <type>', 'Model type', 'User')
+    .option('--tenant-id <tenantId>', 'Tenant ID for scoped lookups')
+    .option('--team-id <teamId>', 'Team ID for scoped lookups')
+    .action((opts) => runUserCommand('direct-permissions', opts));
+
+  program
+    .command('user:permissions-via-roles')
+    .description('List inherited permissions for a model')
+    .requiredOption('--model-id <id>', 'Model ID')
+    .option('--model-type <type>', 'Model type', 'User')
+    .option('--tenant-id <tenantId>', 'Tenant ID for scoped lookups')
+    .option('--team-id <teamId>', 'Team ID for scoped lookups')
+    .action((opts) => runUserCommand('permissions-via-roles', opts));
 
   program
     .command('user:permissions')

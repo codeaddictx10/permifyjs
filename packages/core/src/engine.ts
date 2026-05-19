@@ -127,6 +127,37 @@ export class AuthEngine {
     return [...new Set([...directPermissions, ...permissionsThroughRoles])];
   }
 
+  async getRoles(
+    model: AuthModel,
+    context?: AuthContext
+  ): Promise<string[]> {
+    const { roles } = await this.resolveAll(model, context);
+    return [...roles];
+  }
+
+  async getDirectPermissions(
+    model: AuthModel,
+    context?: AuthContext
+  ): Promise<string[]> {
+    const { directPermissions } = await this.resolveAll(model, context);
+    return [...directPermissions];
+  }
+
+  async getPermissionsThroughRoles(
+    model: AuthModel,
+    context?: AuthContext
+  ): Promise<string[]> {
+    const { permissionsThroughRoles } = await this.resolveAll(model, context);
+    return [...permissionsThroughRoles];
+  }
+
+  async getRolePermissions(
+    role: string,
+    context?: AuthContext
+  ): Promise<string[]> {
+    return this.role(role).getPermissions(context);
+  }
+
   async can(
     model: AuthModel,
     permission: string,
@@ -180,6 +211,20 @@ export class AuthEngine {
 
     const { roles } = await this.resolveAll(normalized, context);
     return roles.includes(role);
+  }
+
+  async hasExactRoles(
+    model: AuthModel,
+    roles: string[],
+    context?: AuthContext
+  ): Promise<boolean> {
+    const currentRoles = await this.getRoles(model, context);
+    const expected = [...new Set(roles)].sort();
+    const actual = [...new Set(currentRoles)].sort();
+
+    if (expected.length !== actual.length) return false;
+
+    return expected.every((role, index) => role === actual[index]);
   }
 
   // ─── Role object ──────────────────────────────────────────────────

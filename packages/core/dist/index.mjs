@@ -154,6 +154,21 @@ var PermissionCache = class {
 };
 
 // src/utils.ts
+async function getRoles(auth, user, context) {
+  return auth.getRoles(user, context);
+}
+async function getDirectPermissions(auth, user, context) {
+  return auth.getDirectPermissions(user, context);
+}
+async function getPermissionsThroughRoles(auth, user, context) {
+  return auth.getPermissionsThroughRoles(user, context);
+}
+async function getAllPermissions(auth, user, context) {
+  return auth.getAllPermissions(user, context);
+}
+async function getRolePermissions(auth, role, context) {
+  return auth.getRolePermissions(role, context);
+}
 async function hasAnyRole(auth, user, roles, context) {
   const results = await Promise.all(
     roles.map((role) => auth.hasRole(user, role, context))
@@ -165,6 +180,9 @@ async function hasAllRoles(auth, user, roles, context) {
     roles.map((role) => auth.hasRole(user, role, context))
   );
   return results.every(Boolean);
+}
+async function hasExactRoles(auth, user, roles, context) {
+  return auth.hasExactRoles(user, roles, context);
 }
 async function hasAnyPermission(auth, user, permissions, context) {
   const results = await Promise.all(
@@ -360,6 +378,21 @@ var AuthEngine = class {
     const { directPermissions, permissionsThroughRoles } = await this.resolveAll(model, context);
     return [.../* @__PURE__ */ new Set([...directPermissions, ...permissionsThroughRoles])];
   }
+  async getRoles(model, context) {
+    const { roles } = await this.resolveAll(model, context);
+    return [...roles];
+  }
+  async getDirectPermissions(model, context) {
+    const { directPermissions } = await this.resolveAll(model, context);
+    return [...directPermissions];
+  }
+  async getPermissionsThroughRoles(model, context) {
+    const { permissionsThroughRoles } = await this.resolveAll(model, context);
+    return [...permissionsThroughRoles];
+  }
+  async getRolePermissions(role, context) {
+    return this.role(role).getPermissions(context);
+  }
   async can(model, permission, context) {
     const normalized = this.normalizeModel(model);
     if (normalized.id === null || normalized.id === void 0) return false;
@@ -390,6 +423,13 @@ var AuthEngine = class {
     if (override !== null && override !== void 0) return override;
     const { roles } = await this.resolveAll(normalized, context);
     return roles.includes(role);
+  }
+  async hasExactRoles(model, roles, context) {
+    const currentRoles = await this.getRoles(model, context);
+    const expected = [...new Set(roles)].sort();
+    const actual = [...new Set(currentRoles)].sort();
+    if (expected.length !== actual.length) return false;
+    return expected.every((role, index) => role === actual[index]);
   }
   // ─── Role object ──────────────────────────────────────────────────
   role(name) {
@@ -584,7 +624,12 @@ export {
   createAuth,
   defineConfig,
   defineRoles,
+  getAllPermissions,
+  getDirectPermissions,
   getEnabledScopeFields,
+  getPermissionsThroughRoles,
+  getRolePermissions,
+  getRoles,
   hasAllDirectPermissions,
   hasAllPermissions,
   hasAllRoles,
@@ -592,6 +637,7 @@ export {
   hasAnyPermission,
   hasAnyRole,
   hasAnyRoleOrPermission,
+  hasExactRoles,
   hasRoleOrPermission,
   hasTeamScope,
   hasTenantScope,

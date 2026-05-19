@@ -4,6 +4,11 @@ import { createRequire } from 'module';
 import { dirname, join, resolve } from 'path';
 import { tmpdir } from 'os';
 import { registerPermifyModels } from '../../../mongoose/src';
+import {
+  createPermifyRecord,
+  createTypeOrmWriteResolver,
+  syncPermifySchema,
+} from '../../../typeorm/src';
 
 let DatabaseSync:
   | (new (path: string) => {
@@ -27,6 +32,7 @@ const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 const repoRoot = resolve(dirname(__filename), '../../../..');
 const exampleAppDir = join(repoRoot, 'examples', 'express-app');
 const mongooseWorkspaceDir = join(repoRoot, 'packages', 'mongoose');
+const typeormWorkspaceDir = join(repoRoot, 'packages', 'typeorm');
 const runPrismaCliIntegration =
   process.env.PERMIFYJS_RUN_PRISMA_CLI_INTEGRATION === '1' && DatabaseSync !== null;
 const runMongoCliIntegration = process.env.PERMIFYJS_RUN_MONGOOSE_INTEGRATION === '1';
@@ -34,6 +40,10 @@ const mongooseWorkspaceRequire = createRequire(
   join(mongooseWorkspaceDir, 'package.json')
 );
 const mongoose = mongooseWorkspaceRequire('mongoose') as typeof import('mongoose');
+const typeormWorkspaceRequire = createRequire(
+  join(typeormWorkspaceDir, 'package.json')
+);
+const { DataSource } = typeormWorkspaceRequire('typeorm') as typeof import('typeorm');
 const { MongoMemoryServer } = mongooseWorkspaceRequire('mongodb-memory-server') as typeof import('mongodb-memory-server');
 
 function createPrismaProject(): string {
@@ -196,6 +206,93 @@ export const writeResolver: PermissionWriteResolver = createMongooseWriteResolve
   );
 
   return cwd;
+}
+
+function createTypeOrmProject(): { cwd: string; dbPath: string } {
+  const cwd = mkdtempSync(join(tmpdir(), 'permifyjs-typeorm-cli-'));
+  const dbPath = join(cwd, 'permify.db');
+  tempDirs.push(cwd);
+
+  mkdirSync(join(cwd, 'src', 'db'), { recursive: true });
+  mkdirSync(join(cwd, 'src', 'permifyjs'), { recursive: true });
+  mkdirSync(join(cwd, 'node_modules', '@permifyjs'), { recursive: true });
+
+  writeFileSync(
+    join(cwd, 'package.json'),
+    JSON.stringify({
+      name: 'test-typeorm-app',
+      dependencies: {
+        '@permifyjs/core': 'workspace:*',
+        '@permifyjs/typeorm': 'workspace:*',
+        typeorm: '^0.3.0',
+      },
+    })
+  );
+  writeFileSync(
+    join(cwd, 'permifyjs.config.ts'),
+    `import { defineConfig } from '@permifyjs/core';
+
+export default defineConfig({
+  adapter: 'typeorm',
+  framework: 'express',
+  models: ['User'],
+  scopeMode: 'global',
+  tables: {
+    roles: 'roles',
+    permissions: 'permissions',
+    roleHasPermissions: 'role_has_permissions',
+    modelHasRoles: 'model_has_roles',
+    modelHasPermissions: 'model_has_permissions',
+  },
+});
+`
+  );
+  writeFileSync(
+    join(cwd, 'src', 'db', 'data-source.ts'),
+    `import { DataSource } from 'typeorm';
+
+export const dataSource = new DataSource({
+  type: 'better-sqlite3',
+  database: ${JSON.stringify(dbPath.replace(/\\/g, '/'))},
+});
+`
+  );
+  writeFileSync(
+    join(cwd, 'src', 'permifyjs', 'writeResolver.ts'),
+    `import type { PermissionWriteResolver } from '@permifyjs/core';
+import config from '../../permifyjs.config';
+import { createTypeOrmWriteResolver } from '@permifyjs/typeorm';
+import { dataSource } from '../db/data-source';
+
+export const writeResolver: PermissionWriteResolver = createTypeOrmWriteResolver(dataSource, {
+  scopeMode: config.scopeMode,
+  tableNames: config.tables,
+});
+`
+  );
+
+  symlinkSync(
+    join(repoRoot, 'node_modules', 'typeorm'),
+    join(cwd, 'node_modules', 'typeorm'),
+    'dir'
+  );
+  symlinkSync(
+    join(repoRoot, 'node_modules', 'better-sqlite3'),
+    join(cwd, 'node_modules', 'better-sqlite3'),
+    'dir'
+  );
+  symlinkSync(
+    join(repoRoot, 'packages', 'core'),
+    join(cwd, 'node_modules', '@permifyjs', 'core'),
+    'dir'
+  );
+  symlinkSync(
+    typeormWorkspaceDir,
+    join(cwd, 'node_modules', '@permifyjs', 'typeorm'),
+    'dir'
+  );
+
+  return { cwd, dbPath };
 }
 
 function queryScalar(databasePath: string, sql: string): unknown {
@@ -502,4 +599,106 @@ describe('runRoleCommand() with a real Prisma DB', () => {
     },
     60000
   );
+
+  it('runs role, permission, and user commands against a real typeorm database', async () => {
+    const { cwd, dbPath } = createTypeOrmProject();
+    const dataSource = new DataSource({
+      type: 'better-sqlite3',
+      database: dbPath,
+    });
+
+    await dataSource.initialize();
+
+    try {
+      await syncPermifySchema(dataSource, { scopeMode: 'global' });
+      await createPermifyRecord(dataSource as any, 'roles', 'admin');
+      await createPermifyRecord(dataSource as any, 'permissions', 'can view users');
+      await createPermifyRecord(dataSource as any, 'permissions', 'can view all');
+
+      const writeResolver = createTypeOrmWriteResolver(dataSource as any, {
+        scopeMode: 'global',
+      });
+      await writeResolver.assignPermissionToRole('admin', 'can view users');
+      await writeResolver.assignRole({ id: 'user-1', modelType: 'User' }, 'admin');
+      await writeResolver.givePermissionTo(
+        { id: 'user-1', modelType: 'User' },
+        'can view all'
+      );
+    } finally {
+      await dataSource.destroy();
+    }
+
+    process.chdir(cwd);
+
+    const { runRoleCommand } = await import('../cli/commands/role');
+    const { runPermissionCommand } = await import('../cli/commands/permission');
+    const { runUserCommand } = await import('../cli/commands/user');
+
+    await runRoleCommand('create', { name: 'editor' });
+    expect(
+      queryScalar(dbPath, "select count(*) from roles where name = 'editor'")
+    ).toBe(1);
+
+    consoleLogSpy.mockClear();
+    await runRoleCommand('assign', {
+      modelId: 'user-2',
+      modelType: 'User',
+      role: 'editor',
+    });
+    expect(
+      queryScalar(
+        dbPath,
+        `select count(*)
+         from model_has_roles mhr
+         join roles r on r.id = mhr.roleId
+         where mhr.modelId = 'user-2'
+           and mhr.modelType = 'User'
+           and r.name = 'editor'`
+      )
+    ).toBe(1);
+
+    consoleLogSpy.mockClear();
+    await runPermissionCommand('create', { name: 'post.publish' });
+    expect(
+      queryScalar(
+        dbPath,
+        "select count(*) from permissions where name = 'post.publish'"
+      )
+    ).toBe(1);
+
+    await runPermissionCommand('assign', {
+      role: 'editor',
+      permission: 'post.publish',
+    });
+    expect(
+      queryScalar(
+        dbPath,
+        `select count(*)
+         from role_has_permissions rhp
+         join roles r on r.id = rhp.roleId
+         join permissions p on p.id = rhp.permissionId
+         where r.name = 'editor'
+           and p.name = 'post.publish'`
+      )
+    ).toBe(1);
+
+    consoleLogSpy.mockClear();
+    await runUserCommand('roles', {
+      modelId: 'user-1',
+      modelType: 'User',
+    });
+    let output = getOutput();
+    expect(output).toContain('Roles for User:user-1');
+    expect(output).toContain('admin');
+
+    consoleLogSpy.mockClear();
+    await runUserCommand('permissions', {
+      modelId: 'user-1',
+      modelType: 'User',
+    });
+    output = getOutput();
+    expect(output).toContain('Permissions for User:user-1');
+    expect(output).toContain('can view all');
+    expect(output).toContain('can view users');
+  });
 });

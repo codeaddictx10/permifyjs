@@ -34,6 +34,18 @@ For Express with Mongoose:
 pnpm add @permifyjs/core @permifyjs/express @permifyjs/mongoose
 ```
 
+For Fastify:
+
+```bash
+pnpm add @permifyjs/core @permifyjs/fastify fastify
+```
+
+For Express with TypeORM:
+
+```bash
+pnpm add @permifyjs/core @permifyjs/express @permifyjs/typeorm typeorm
+```
+
 For NestJS:
 
 ```bash
@@ -46,13 +58,15 @@ Current packages in this repo:
 
 - `@permifyjs/core`
 - `@permifyjs/express`
+- `@permifyjs/fastify`
 - `@permifyjs/nestjs`
 - `@permifyjs/prisma`
 - `@permifyjs/mongoose`
+- `@permifyjs/typeorm`
 
-Deferred after `v0.1.0`:
+Not shipped in this repo yet:
 
-- `@permifyjs/fastify`
+- none
 
 ## Core Concepts
 
@@ -207,6 +221,17 @@ The package source schema is the full `tenant-team` variant for direct adapter c
 
 Call `registerPermifyModels({ scopeMode })` before your application starts using the resolver layer so the required collections and models are registered with the expected schema shape.
 
+## TypeORM Adapter
+
+`@permifyjs/typeorm` provides:
+
+- `createTypeOrmResolver(dataSource)`
+- `createTypeOrmWriteResolver(dataSource)`
+- `syncPermifySchema(dataSource)`
+- `dropPermifySchema(dataSource)`
+
+TypeORM is a first-class adapter in this repo. `permifyjs init` will ask for your exported `dataSource` import path, and `permifyjs migrate` will create the required adapter tables for the configured `scopeMode`.
+
 ## CLI
 
 The core package exposes a CLI:
@@ -215,8 +240,14 @@ The core package exposes a CLI:
 permifyjs init
 permifyjs migrate
 permifyjs role:create admin
+permifyjs role:create admin --tenant-id acme --team-id design
+permifyjs role:list --tenant-id acme --team-id design
+permifyjs matrix --tenant-id acme --team-id design
+permifyjs cache:clear
 permifyjs permission:create post.create
 permifyjs role:assign --model-id 1 --model-type User --role admin
+permifyjs user:direct-permissions --model-id 1 --model-type User
+permifyjs user:permissions-via-roles --model-id 1 --model-type User
 permifyjs user:permissions --model-id 1 --model-type User
 ```
 
@@ -227,7 +258,7 @@ pnpm exec permifyjs init
 pnpm exec permifyjs migrate
 ```
 
-The generated Prisma files now use the Prisma client import path you confirm during `init`, instead of assuming one fixed project structure. `init` also asks which scope model your app uses and stores it as `scopeMode`.
+The generated Prisma files now use the Prisma client import path you confirm during `init`, instead of assuming one fixed project structure. `init` also asks which scope model your app uses and stores it as `scopeMode`. In scoped projects, `role:create` and `role:list` accept the same `--tenant-id` / `--team-id` flags as the assignment and lookup commands so duplicate role names can exist in different scopes.
 
 ## Testing
 

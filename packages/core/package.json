@@ -30,7 +30,8 @@
   "scripts": {
     "build": "pnpm exec tsup && node -e \"require('fs-extra').copySync('src/cli/templates','dist/templates')\" && chmod +x dist/bin.js",
     "test": "vitest",
-    "dev": "pnpm exec tsup --watch"
+    "dev": "pnpm exec tsup --watch",
+    "start": "node ./dist/bin.js"
   },
   "keywords": [
     "rbac",

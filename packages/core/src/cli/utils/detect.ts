@@ -160,25 +160,11 @@ export function detectPrismaSchemaPath(cwd = process.cwd()): string | null {
 }
 
 export function detectMongoose(cwd = process.cwd()): boolean {
-  if (packageHasDependency(cwd, 'mongoose')) return true;
-
-  try {
-    require.resolve('mongoose');
-    return true;
-  } catch {
-    return false;
-  }
+  return packageHasDependency(cwd, 'mongoose');
 }
 
 export function detectTypeORM(cwd = process.cwd()): boolean {
-  if (packageHasDependency(cwd, 'typeorm')) return true;
-
-  try {
-    require.resolve('typeorm');
-    return true;
-  } catch {
-    return false;
-  }
+  return packageHasDependency(cwd, 'typeorm');
 }
 
 export function detectInstalledAdapter(
@@ -203,13 +189,6 @@ export function detectInstalledFramework(
     if (packageHasDependency(cwd, pkg)) {
       return framework;
     }
-
-    try {
-      require.resolve(pkg);
-      return framework;
-    } catch {
-      continue;
-    }
   }
 
   return null;
@@ -217,4 +196,45 @@ export function detectInstalledFramework(
 
 export function detectSrcDir(cwd = process.cwd()): string {
   return existsSync(join(cwd, 'src')) ? 'src' : '.';
+}
+
+export function detectTypeOrmDataSourceImportPath(
+  srcDir = detectSrcDir(),
+  cwd = process.cwd()
+): string | null {
+  const sourceRoot = srcDir === '.' ? '' : `${srcDir}/`;
+  const candidateBases = [
+    `${sourceRoot}db/data-source`,
+    `${sourceRoot}db/datasource`,
+    `${sourceRoot}data-source`,
+    `${sourceRoot}datasource`,
+    `${sourceRoot}database/data-source`,
+    `${sourceRoot}database/datasource`,
+    `${sourceRoot}lib/data-source`,
+    `${sourceRoot}lib/datasource`,
+    'db/data-source',
+    'db/datasource',
+    'data-source',
+    'datasource',
+  ];
+
+  const permifyDir = join(cwd, srcDir, 'permifyjs');
+
+  for (const base of candidateBases) {
+    for (const extension of SUPPORTED_SOURCE_EXTENSIONS) {
+      const candidate = join(cwd, `${base}${extension}`);
+      if (existsSync(candidate)) {
+        return toImportSpecifier(permifyDir, candidate);
+      }
+    }
+
+    for (const extension of SUPPORTED_SOURCE_EXTENSIONS) {
+      const candidate = join(cwd, base, `index${extension}`);
+      if (existsSync(candidate)) {
+        return toImportSpecifier(permifyDir, candidate);
+      }
+    }
+  }
+
+  return null;
 }

@@ -4,9 +4,11 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import {
   detectInstalledAdapter,
+  detectInstalledFramework,
   detectPrisma,
   detectPrismaClientImportPath,
   detectPrismaSchemaPath,
+  detectTypeOrmDataSourceImportPath,
 } from '../cli/utils/detect';
 
 const tempDirs: string[] = [];
@@ -58,6 +60,16 @@ describe('detectPrismaSchemaPath()', () => {
       join(cwd, 'apps/api/prisma/schema.prisma')
     );
   });
+
+  it('detects typeorm projects as supported adapters', () => {
+    const cwd = createTempDir();
+    writeFileSync(
+      join(cwd, 'package.json'),
+      JSON.stringify({ dependencies: { typeorm: '^0.3.0' } }, null, 2)
+    );
+
+    expect(detectInstalledAdapter(cwd)).toBe('typeorm');
+  });
 });
 
 describe('detectPrismaClientImportPath()', () => {
@@ -75,5 +87,27 @@ describe('detectPrismaClientImportPath()', () => {
     writeFileSync(join(cwd, 'src/db/prisma/index.ts'), 'export const prisma = {};');
 
     expect(detectPrismaClientImportPath('src', cwd)).toBe('../db/prisma');
+  });
+});
+
+describe('detectTypeOrmDataSourceImportPath()', () => {
+  it('detects a typeorm data source in src/db and returns a relative import specifier', () => {
+    const cwd = createTempDir();
+    mkdirSync(join(cwd, 'src/db'), { recursive: true });
+    writeFileSync(join(cwd, 'src/db/data-source.ts'), 'export const dataSource = {};');
+
+    expect(detectTypeOrmDataSourceImportPath('src', cwd)).toBe('../db/data-source');
+  });
+});
+
+describe('detectInstalledFramework()', () => {
+  it('detects fastify projects as supported frameworks', () => {
+    const cwd = createTempDir();
+    writeFileSync(
+      join(cwd, 'package.json'),
+      JSON.stringify({ dependencies: { fastify: '^5.0.0' } }, null, 2)
+    );
+
+    expect(detectInstalledFramework(cwd)).toBe('fastify');
   });
 });

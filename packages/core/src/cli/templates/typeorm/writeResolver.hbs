@@ -1,0 +1,9 @@
+import type { PermissionWriteResolver } from '@permifyjs/core';
+import config from '{{configImportPath}}';
+import { createTypeOrmWriteResolver } from '@permifyjs/typeorm';
+import { dataSource } from '{{typeormDataSourceImportPath}}';
+
+export const writeResolver: PermissionWriteResolver = createTypeOrmWriteResolver(dataSource, {
+  scopeMode: config.scopeMode,
+  tableNames: config.tables,
+});

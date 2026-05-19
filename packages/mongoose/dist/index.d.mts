@@ -18,6 +18,8 @@ interface RegisterPermifyModelsOptions {
 }
 interface PermifyRoleDocument {
     name: string;
+    tenantId?: string;
+    teamId?: string;
     createdAt?: Date;
     updatedAt?: Date;
 }

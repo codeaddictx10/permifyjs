@@ -1,6 +1,48 @@
 import type { AuthUser, AuthContext } from './types';
 import type { AuthEngine } from './engine';
 
+// ─── Read helpers ────────────────────────────────────────────────
+
+export async function getRoles(
+  auth: AuthEngine,
+  user: AuthUser,
+  context?: AuthContext
+): Promise<string[]> {
+  return auth.getRoles(user, context);
+}
+
+export async function getDirectPermissions(
+  auth: AuthEngine,
+  user: AuthUser,
+  context?: AuthContext
+): Promise<string[]> {
+  return auth.getDirectPermissions(user, context);
+}
+
+export async function getPermissionsThroughRoles(
+  auth: AuthEngine,
+  user: AuthUser,
+  context?: AuthContext
+): Promise<string[]> {
+  return auth.getPermissionsThroughRoles(user, context);
+}
+
+export async function getAllPermissions(
+  auth: AuthEngine,
+  user: AuthUser,
+  context?: AuthContext
+): Promise<string[]> {
+  return auth.getAllPermissions(user, context);
+}
+
+export async function getRolePermissions(
+  auth: AuthEngine,
+  role: string,
+  context?: AuthContext
+): Promise<string[]> {
+  return auth.getRolePermissions(role, context);
+}
+
 // ─── Role utilities ───────────────────────────────────────────────
 
 export async function hasAnyRole(
@@ -25,6 +67,15 @@ export async function hasAllRoles(
     roles.map((role) => auth.hasRole(user, role, context))
   );
   return results.every(Boolean);
+}
+
+export async function hasExactRoles(
+  auth: AuthEngine,
+  user: AuthUser,
+  roles: string[],
+  context?: AuthContext
+): Promise<boolean> {
+  return auth.hasExactRoles(user, roles, context);
 }
 
 

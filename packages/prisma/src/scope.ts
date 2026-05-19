@@ -42,3 +42,23 @@ export function getScopedCompoundKeyName(
 ): string {
   return [...prefix, ...getEnabledScopeFields(scopeMode), ...suffix].join('_');
 }
+
+export function getScopedRoleWhereUnique(
+  name: string,
+  scopeMode: ScopeMode | undefined,
+  context?: AuthContext
+): Record<string, unknown> {
+  const scope = normalizeScope(scopeMode, context);
+  const keyName = getScopedCompoundKeyName(['name'], [], scopeMode);
+
+  if (keyName === 'name') {
+    return { name };
+  }
+
+  return {
+    [keyName]: {
+      name,
+      ...scope,
+    },
+  };
+}

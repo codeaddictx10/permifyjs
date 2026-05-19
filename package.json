@@ -19,7 +19,7 @@
     "typescript"
   ],
   "scripts": {
-    "build": "pnpm --filter @permifyjs/core build && pnpm --filter @permifyjs/express build && pnpm --filter @permifyjs/nestjs build && pnpm --filter @permifyjs/prisma build && pnpm --filter @permifyjs/mongoose build",
+    "build": "pnpm --filter @permifyjs/core build && pnpm --filter @permifyjs/express build && pnpm --filter @permifyjs/fastify build && pnpm --filter @permifyjs/nestjs build && pnpm --filter @permifyjs/prisma build && pnpm --filter @permifyjs/mongoose build && pnpm --filter @permifyjs/typeorm build",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm build && changeset publish",
@@ -27,7 +27,7 @@
     "test": "pnpm -r test",
     "lint": "eslint packages/**/src/**/*.ts",
     "clean": "pnpm -r clean",
-    "cli": "pnpm --filter @permifyjs/cli start"
+    "cli": "pnpm --filter @permifyjs/core start"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -83,4 +83,62 @@ describe('CLI command flows', () => {
     expect(output).toContain('Permissions for User:7');
     expect(output).toContain('Use auth.getAllPermissions() in your app');
   });
+
+  it('parses direct permission inspection commands', async () => {
+    const cwd = createTempProject();
+    process.chdir(cwd);
+
+    const { createProgram } = await import('../cli/program');
+    const program = createProgram().exitOverride();
+    await program.parseAsync(
+      ['node', 'permifyjs', 'user:direct-permissions', '--model-id', '7'],
+      { from: 'node' }
+    );
+
+    const output = getOutput();
+    expect(output).toContain('Direct permissions for User:7');
+    expect(output).toContain('Use auth.getDirectPermissions() in your app');
+  });
+
+  it('parses inherited permission inspection commands', async () => {
+    const cwd = createTempProject();
+    process.chdir(cwd);
+
+    const { createProgram } = await import('../cli/program');
+    const program = createProgram().exitOverride();
+    await program.parseAsync(
+      ['node', 'permifyjs', 'user:permissions-via-roles', '--model-id', '7'],
+      { from: 'node' }
+    );
+
+    const output = getOutput();
+    expect(output).toContain('Permissions via roles for User:7');
+    expect(output).toContain('Use auth.getPermissionsThroughRoles() in your app');
+  });
+
+  it('parses matrix commands', async () => {
+    const cwd = createTempProject();
+    process.chdir(cwd);
+
+    const { createProgram } = await import('../cli/program');
+    const program = createProgram().exitOverride();
+    await program.parseAsync(['node', 'permifyjs', 'matrix'], { from: 'node' });
+
+    const output = getOutput();
+    expect(output).toContain('matrix');
+    expect(output).toContain('resolver');
+  });
+
+  it('parses cache reset commands', async () => {
+    const cwd = createTempProject();
+    process.chdir(cwd);
+
+    const { createProgram } = await import('../cli/program');
+    const program = createProgram().exitOverride();
+    await program.parseAsync(['node', 'permifyjs', 'cache:clear'], { from: 'node' });
+
+    const output = getOutput();
+    expect(output).toContain('Could not load src/permifyjs/index auth export.');
+    expect(output).toContain('Cache reset requires the generated auth module');
+  });
 });

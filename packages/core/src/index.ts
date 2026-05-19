@@ -42,8 +42,14 @@ export type {
 } from './seeding';
 
 export {
+  getRoles,
+  getDirectPermissions,
+  getPermissionsThroughRoles,
+  getAllPermissions,
+  getRolePermissions,
   hasAnyRole,
   hasAllRoles,
+  hasExactRoles,
   hasAnyPermission,
   hasAllPermissions,
   hasAnyDirectPermission,

@@ -49,6 +49,28 @@ describe('merged permissions', () => {
     );
     expect(new Set(all).size).toBe(all.length);
   });
+
+  it('exposes direct permissions separately', async () => {
+    expect(await auth.getDirectPermissions(user)).toEqual(['post.publish']);
+  });
+
+  it('exposes permissions through roles separately', async () => {
+    expect(await auth.getPermissionsThroughRoles(user)).toEqual([
+      'post.create',
+      'post.edit',
+    ]);
+  });
+
+  it('exposes role names for a model', async () => {
+    expect(await auth.getRoles(user)).toEqual(['editor']);
+  });
+
+  it('exposes permission names for a role', async () => {
+    expect(await auth.getRolePermissions('editor')).toEqual([
+      'post.create',
+      'post.edit',
+    ]);
+  });
 });
 
 // ─── Wildcard permissions ─────────────────────────────────────────
@@ -174,6 +196,12 @@ describe('roles', () => {
 
   it('hasRole() returns false for invalid role', async () => {
     expect(await auth.hasRole(user, 'admin')).toBe(false);
+  });
+
+  it('hasExactRoles() matches exact role sets', async () => {
+    expect(await auth.hasExactRoles(user, ['editor'])).toBe(true);
+    expect(await auth.hasExactRoles(user, ['admin'])).toBe(false);
+    expect(await auth.hasExactRoles(user, ['editor', 'admin'])).toBe(false);
   });
 });
 

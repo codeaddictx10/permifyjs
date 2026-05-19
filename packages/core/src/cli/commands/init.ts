@@ -10,7 +10,7 @@ import {
   appendToFile,
   renderTemplate,
 } from '../utils/generator';
-import { detectPackageManager, detectInstalledAdapter, detectInstalledFramework, detectPrismaClientImportPath, detectPrismaSchemaPath, detectSrcDir } from '../utils/detect';
+import { detectPackageManager, detectInstalledAdapter, detectInstalledFramework, detectPrismaClientImportPath, detectPrismaSchemaPath, detectSrcDir, detectTypeOrmDataSourceImportPath } from '../utils/detect';
 import { installPackages } from '../utils/installer';
 import type { AdapterType, FrameworkType, ScopeMode } from '../../types';
 import { INIT_DEFAULT_SCOPE_MODE, hasTeamScope, hasTenantScope } from '../../scope';
@@ -70,6 +70,9 @@ export async function runInit(): Promise<void> {
   const packageManager = detectPackageManager();
   const srcDir = detectSrcDir();
   const detectedPrismaClientImportPath = detectPrismaClientImportPath(srcDir);
+  const detectedTypeOrmDataSourceImportPath = detectTypeOrmDataSourceImportPath(
+    srcDir
+  );
 
   // ─── Prompts ────────────────────────────────────────────────────
 
@@ -141,6 +144,18 @@ export async function runInit(): Promise<void> {
         },
       },
       {
+        type: (_, values) => (values.adapter === 'typeorm' ? 'text' : null),
+        name: 'typeormDataSourceImportPath',
+        message: 'Import path to your TypeORM dataSource instance (relative to generated permify files)',
+        initial: detectedTypeOrmDataSourceImportPath ?? '../db/data-source',
+        validate: (value: string) => {
+          if (!value || !value.trim()) {
+            return 'TypeORM dataSource import path is required';
+          }
+          return true;
+        },
+      },
+      {
         type: 'confirm',
         name: 'confirm',
         message: (prev: boolean, values: any) =>
@@ -167,6 +182,7 @@ export async function runInit(): Promise<void> {
   const scopeMode = answers.scopeMode as ScopeMode;
   const enableCache = answers.enableCache as boolean;
   const prismaClientImportPath = (answers.prismaClientImportPath as string | undefined)?.trim();
+  const typeormDataSourceImportPath = (answers.typeormDataSourceImportPath as string | undefined)?.trim();
 
   logger.blank();
 
@@ -223,6 +239,7 @@ export async function runInit(): Promise<void> {
         framework,
         models,
         prismaClientImportPath,
+        typeormDataSourceImportPath,
         configImportPath,
         ...getScopeTemplateData(scopeMode),
       }
@@ -243,6 +260,7 @@ export async function runInit(): Promise<void> {
         framework,
         models,
         prismaClientImportPath,
+        typeormDataSourceImportPath,
         configImportPath,
         ...getScopeTemplateData(scopeMode),
       }
@@ -273,6 +291,10 @@ export async function runInit(): Promise<void> {
     await setupMongoose(srcDir, configImportPath, scopeMode);
   }
 
+  if (adapter === 'typeorm') {
+    await setupTypeOrm();
+  }
+
   // ─── Done ───────────────────────────────────────────────────────
 
   logger.blank();
@@ -288,6 +310,10 @@ export async function runInit(): Promise<void> {
 
   if (adapter === 'mongoose') {
     logger.step('3. Call registerPermifyModels() before connecting to MongoDB');
+  }
+
+  if (adapter === 'typeorm') {
+    logger.step('3. Run: npx permifyjs migrate');
   }
 
   logger.blank();
@@ -463,4 +489,9 @@ async function setupMongoose(
     spinner.fail('Failed to set up Mongoose models');
     logger.error(String(err));
   }
+}
+
+async function setupTypeOrm(): Promise<void> {
+  logger.info('TypeORM setup uses your exported dataSource instance and the permifyjs table config.');
+  logger.info('Run: npx permifyjs migrate');
 }

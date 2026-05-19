@@ -147,9 +147,9 @@ function assertRegistryScopeMode(
 }
 
 function createRoleSchema(collectionName: string, scopeMode?: ScopeMode): Schema<PermifyRoleDocument> {
-  return new Schema(
+  const schema = new Schema(
     {
-      name: { type: String, required: true, unique: true, index: true },
+      name: { type: String, required: true },
       ...getScopeSchemaFields(scopeMode),
     },
     {
@@ -157,6 +157,9 @@ function createRoleSchema(collectionName: string, scopeMode?: ScopeMode): Schema
       collection: collectionName,
     }
   );
+
+  schema.index(getScopedIndexShape({ name: 1 }, {}, scopeMode), { unique: true });
+  return schema;
 }
 
 function createPermissionSchema(
