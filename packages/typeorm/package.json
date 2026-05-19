@@ -1,6 +1,6 @@
 {
   "name": "@permifyjs/typeorm",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "TypeORM adapter for PermifyJS",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

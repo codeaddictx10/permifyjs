@@ -1,6 +1,6 @@
 {
   "name": "@permifyjs/fastify",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "Fastify adapter for PermifyJS",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
